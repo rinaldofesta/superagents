@@ -57,8 +57,8 @@ program
         // Step 6: Confirm selections
         const selections = await confirmSelections(recommendations);
         // Step 7: Generate with AI
-        // Don't use spinner here - generator has its own progress display
-        console.log(pc.dim('\n  Generating configurations with Claude...\n'));
+        // Generator has its own ora spinner with percentage progress
+        console.log(''); // Add spacing
         const generator = new AIGenerator();
         const context = {
             goal,
@@ -72,7 +72,7 @@ program
             generatedAt: new Date().toISOString()
         };
         const outputs = await generator.generateAll(context);
-        console.log('\n' + pc.green('  ✓') + ' Configurations generated\n');
+        console.log(''); // Add spacing after generation
         // Step 8: Write output
         spinner.start('Writing files to .claude folder...');
         const writer = new OutputWriter(process.cwd());

@@ -5,6 +5,7 @@
 import type { GenerationContext, GeneratedOutputs, AgentOutput, SkillOutput, HookOutput } from '../types/generation.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { executeWithClaudeCLI } from '../utils/claude-cli.js';
+import ora from 'ora';
 
 export class AIGenerator {
   constructor() {
@@ -15,15 +16,32 @@ export class AIGenerator {
     const totalItems = context.selectedAgents.length + context.selectedSkills.length + 1;
     let completed = 0;
 
-    const log = (msg: string, done = false) => {
-      const prefix = done ? '  ✓' : '  ⏳';
-      console.log(`${prefix} ${msg}`);
+    const getPercent = () => Math.round((completed / totalItems) * 100);
+
+    const spinner = ora({
+      text: `Generating... 0%`,
+      spinner: 'dots'
+    }).start();
+
+    const updateSpinner = (item: string) => {
+      spinner.text = `[${getPercent()}%] Generating ${item}...`;
+    };
+
+    const successItem = (item: string) => {
+      completed++;
+      spinner.text = `[${getPercent()}%] ✓ ${item}`;
+    };
+
+    const failItem = (item: string, error: string) => {
+      completed++;
+      spinner.warn(`[${getPercent()}%] ⚠ ${item} - ${error}`);
+      spinner.start();
     };
 
     // Generate agents using AI
     const agents: AgentOutput[] = [];
     for (const agentName of context.selectedAgents) {
-      log(`Generating agent: ${agentName} (${++completed}/${totalItems})...`);
+      updateSpinner(`agent: ${agentName}`);
       try {
         const content = await this.generateAgent(agentName, context);
         agents.push({
@@ -31,9 +49,9 @@ export class AIGenerator {
           content,
           agentName
         });
-        log(`Agent ${agentName} done`, true);
+        successItem(`Agent ${agentName}`);
       } catch (error) {
-        console.error(`  ⚠️  Agent ${agentName} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        failItem(`Agent ${agentName}`, error instanceof Error ? error.message : 'Unknown error');
         // Fallback to placeholder if AI generation fails
         agents.push({
           filename: `${agentName}.md`,
@@ -46,7 +64,7 @@ export class AIGenerator {
     // Generate skills using AI
     const skills: SkillOutput[] = [];
     for (const skillName of context.selectedSkills) {
-      log(`Generating skill: ${skillName} (${++completed}/${totalItems})...`);
+      updateSpinner(`skill: ${skillName}`);
       try {
         const content = await this.generateSkill(skillName, context);
         skills.push({
@@ -54,9 +72,9 @@ export class AIGenerator {
           content,
           skillName
         });
-        log(`Skill ${skillName} done`, true);
+        successItem(`Skill ${skillName}`);
       } catch (error) {
-        console.error(`  ⚠️  Skill ${skillName} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        failItem(`Skill ${skillName}`, error instanceof Error ? error.message : 'Unknown error');
         // Fallback to placeholder if AI generation fails
         skills.push({
           filename: `${skillName}.md`,
@@ -73,15 +91,17 @@ export class AIGenerator {
     }];
 
     // Generate CLAUDE.md using AI
-    log(`Generating CLAUDE.md (${++completed}/${totalItems})...`);
+    updateSpinner('CLAUDE.md');
     let claudeMd: string;
     try {
       claudeMd = await this.generateClaudeMdWithAI(context);
-      log('CLAUDE.md done', true);
+      successItem('CLAUDE.md');
     } catch (error) {
-      console.error(`  ⚠️  CLAUDE.md failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      failItem('CLAUDE.md', error instanceof Error ? error.message : 'Unknown error');
       claudeMd = this.generateClaudeMd(context);
     }
+
+    spinner.succeed(`Generation complete! [100%]`);
 
     const settings = {
       agents: context.selectedAgents,
