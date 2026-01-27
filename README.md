@@ -14,24 +14,48 @@ SuperAgents is an intelligent CLI tool that generates highly customized Claude C
 - 🔒 **Privacy-First** - Local processing, smart file sampling
 - ⚡ **Fast & Efficient** - Optimized analysis and generation
 
-## 🚀 Quick Start
+## 🚀 Installation
+
+### One-Line Install
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Or build and run
-npm run build
-npm start
-
-# Run directly
-npx superagents
+curl -fsSL https://raw.githubusercontent.com/rinaldofesta/superagents/main/install.sh | bash
 ```
 
-## 📖 How It Works
+**Requirements:** Node.js 20+
+
+After installation, restart your terminal or run:
+```bash
+source ~/.zshrc   # for zsh
+source ~/.bashrc  # for bash
+```
+
+### Alternative: npm
+
+```bash
+npm install -g superagents
+```
+
+## 📖 Usage
+
+Navigate to any project directory and run:
+
+```bash
+superagents
+```
+
+That's it! SuperAgents will guide you through the setup.
+
+## 🔐 Authentication
+
+SuperAgents supports two authentication methods:
+
+| Method | Command | Best For |
+|--------|---------|----------|
+| **Claude Plan** | Select in CLI | Claude Max subscribers |
+| **API Key** | `export ANTHROPIC_API_KEY=sk-ant-...` | API users |
+
+## 🏗️ How It Works
 
 1. **Ask Your Goal** - "What are you building?"
 2. **Analyze Your Code** - Deep codebase scan
@@ -102,6 +126,26 @@ Next steps:
   1. Run claude to start using your enhanced Claude Code
   2. Use /agent <name> to switch between agents
   3. Use Skill(<name>) to load domain knowledge
+```
+
+## 📁 Output Structure
+
+SuperAgents creates a `.claude/` folder in your project:
+
+```
+.claude/
+├── CLAUDE.md              # Project overview for Claude
+├── settings.json          # Configuration
+├── agents/                # Specialized AI agents
+│   ├── frontend-engineer.md
+│   ├── backend-engineer.md
+│   └── reviewer.md
+├── skills/                # Domain knowledge
+│   ├── nextjs.md
+│   ├── typescript.md
+│   └── react.md
+└── hooks/
+    └── skill-loader.sh    # Auto-loads relevant skills
 ```
 
 ## 🎯 Supported Project Types
