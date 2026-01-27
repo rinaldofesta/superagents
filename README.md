@@ -25,6 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/rinaldofesta/superagents/main/insta
 **Requirements:** Node.js 20+
 
 After installation, restart your terminal or run:
+
 ```bash
 source ~/.zshrc   # for zsh
 source ~/.bashrc  # for bash
@@ -50,10 +51,10 @@ That's it! SuperAgents will guide you through the setup.
 
 SuperAgents supports two authentication methods:
 
-| Method | Command | Best For |
-|--------|---------|----------|
-| **Claude Plan** | Select in CLI | Claude Max subscribers |
-| **API Key** | `export ANTHROPIC_API_KEY=sk-ant-...` | API users |
+| Method          | Command                               | Best For               |
+| --------------- | ------------------------------------- | ---------------------- |
+| **Claude Plan** | Select in CLI                         | Claude Max subscribers |
+| **API Key**     | `export ANTHROPIC_API_KEY=sk-ant-...` | API users              |
 
 ## 🏗️ How It Works
 
@@ -194,18 +195,6 @@ npm run lint
 - **Excludes Secrets** - Automatically skips `.env`, credentials, etc.
 - **Respects .gitignore** - Won't scan ignored files
 - **You Control API Key** - Use your own Anthropic API key
-
-## 🆚 vs SummonAI Kit
-
-| Feature | SummonAI Kit | SuperAgents |
-|---------|-------------|-------------|
-| Codebase Analysis | ✓ | ✓ |
-| Goal Understanding | ✗ | ✓ |
-| Smart Recommendations | Basic | Advanced |
-| Forward-Looking Configs | ✗ | ✓ |
-| Interactive CLI | Basic | Beautiful |
-| Privacy-First | ✓ | ✓ |
-| Open Source | ✗ | ✓ |
 
 ## 📝 License
 

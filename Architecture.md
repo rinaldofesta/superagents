@@ -31,7 +31,7 @@ SuperAgents is an intelligent CLI tool that generates customized Claude Code con
 
 ### Key Innovation: Goal-First Approach
 
-Unlike SummonAI Kit which only analyzes existing code, SuperAgents asks:
+SuperAgents asks:
 
 > "What are you building?"
 
