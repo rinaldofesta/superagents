@@ -6,12 +6,14 @@
  * a separate API key.
  */
 import { spawn } from 'child_process';
+// Timeout for CLI operations (3 minutes for long generations)
+const CLI_TIMEOUT_MS = 180000;
 /**
  * Check if Claude CLI is installed and authenticated
  */
 export async function checkClaudeCLI() {
     try {
-        const version = await executeCommand(['--version']);
+        const version = await executeCommand(['--version'], undefined, 10000);
         // Check for "Claude" (case-insensitive) in version output
         // Example output: "2.1.20 (Claude Code)"
         return version.toLowerCase().includes('claude');
@@ -28,9 +30,11 @@ export async function checkClaudeCLI() {
  * @returns Claude's response text
  */
 export async function executeWithClaudeCLI(prompt, model = 'sonnet') {
-    const modelArg = model === 'opus' ? 'claude-opus-4-5-20251101' : 'claude-sonnet-4-5-20250929';
+    // Use model aliases, not full model IDs
+    const modelArg = model === 'opus' ? 'opus' : 'sonnet';
     try {
-        const result = await executeCommand(['--print', '--model', modelArg], prompt);
+        // Use stdin for prompt (handles long prompts better than args)
+        const result = await executeCommand(['--print', '--model', modelArg], prompt, CLI_TIMEOUT_MS);
         return result.trim();
     }
     catch (error) {
@@ -44,15 +48,24 @@ export async function executeWithClaudeCLI(prompt, model = 'sonnet') {
  *
  * @param args Command arguments
  * @param stdin Optional stdin input
+ * @param timeout Timeout in milliseconds
  * @returns Command output
  */
-async function executeCommand(args, stdin) {
+async function executeCommand(args, stdin, timeout = CLI_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
         const child = spawn('claude', args, {
-            stdio: ['pipe', 'pipe', 'pipe']
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: { ...process.env }
         });
         let stdout = '';
         let stderr = '';
+        let killed = false;
+        // Set timeout
+        const timeoutId = setTimeout(() => {
+            killed = true;
+            child.kill('SIGTERM');
+            reject(new Error(`Claude CLI timed out after ${timeout / 1000} seconds`));
+        }, timeout);
         if (child.stdout) {
             child.stdout.on('data', (data) => {
                 stdout += data.toString();
@@ -64,11 +77,15 @@ async function executeCommand(args, stdin) {
             });
         }
         child.on('error', (error) => {
+            clearTimeout(timeoutId);
             reject(new Error(`Failed to spawn claude command: ${error.message}`));
         });
         child.on('close', (code) => {
+            clearTimeout(timeoutId);
+            if (killed)
+                return; // Already rejected by timeout
             if (code !== 0) {
-                reject(new Error(`Claude CLI exited with code ${code}: ${stderr}`));
+                reject(new Error(`Claude CLI exited with code ${code}: ${stderr || 'No error message'}`));
             }
             else {
                 resolve(stdout);
@@ -77,6 +94,9 @@ async function executeCommand(args, stdin) {
         // Write stdin if provided
         if (stdin && child.stdin) {
             child.stdin.write(stdin);
+            child.stdin.end();
+        }
+        else if (child.stdin) {
             child.stdin.end();
         }
     });
