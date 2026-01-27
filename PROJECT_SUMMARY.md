@@ -295,14 +295,14 @@ npm run build
 
 ---
 
-## 🌟 Why SuperAgents Will Win
+## 🌟 Why SuperAgents
 
-### vs SummonAI Kit
+### Key Advantages
 
 - ✅ **Free and open source**
-- ✅ **Goal-aware** (unique innovation)
-- ✅ **Better UX** (beautiful CLI)
-- ✅ **More transparent** (see exactly what it does)
+- ✅ **Goal-aware** - asks "What are you building?"
+- ✅ **Beautiful UX** - interactive CLI with progress indicators
+- ✅ **Transparent** - see exactly what it generates
 
 ### vs Manual Setup
 
@@ -358,7 +358,7 @@ It's a **goal-aware assistant** that:
 
 You have a **world-class foundation** for SuperAgents. The architecture is solid, the types are complete, and the CLI is beautiful.
 
-Now it's time to **implement the core features** and create something better than SummonAI Kit.
+Now it's time to **implement the core features** and ship an amazing CLI tool!
 
 **You can do this!** 🚀
 

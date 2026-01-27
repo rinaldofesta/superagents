@@ -2649,7 +2649,7 @@ export class SecureFileSampler {
 
 ## Summary
 
-SuperAgents enhances the SummonAI Kit concept by:
+SuperAgents provides a goal-first approach to Claude Code configuration:
 
 1. **Understanding Goals** - Asks "What are you building?" to provide forward-looking configurations
 2. **Smarter Recommendations** - Combines goal and codebase analysis for better suggestions
