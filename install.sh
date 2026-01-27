@@ -108,13 +108,7 @@ install_superagents() {
     npm install --production
     echo -e "${GREEN}✓${NC} Dependencies installed"
 
-    # Build
-    echo ""
-    echo -e "${BLUE}Building...${NC}"
-    npm run build
-    echo -e "${GREEN}✓${NC} Build complete"
-
-    # Create symlink
+    # Create symlink (dist/ is pre-built in the repo)
     echo ""
     echo -e "${BLUE}Creating command link...${NC}"
     ln -sf "$INSTALL_DIR/bin/superagents" "$BIN_DIR/superagents"
