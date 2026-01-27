@@ -22,12 +22,14 @@ import { collectProjectGoal, selectModel, confirmSelections } from './cli/prompt
 import { displayDryRunPreview } from './cli/dry-run.js';
 import { authenticateWithAnthropic } from './utils/auth.js';
 import { setVerbose, log } from './utils/logger.js';
+import { cache } from './cache/index.js';
 import { CodebaseAnalyzer } from './analyzer/codebase-analyzer.js';
 import { RecommendationEngine } from './context/recommendation-engine.js';
 import { AIGenerator } from './generator/index.js';
 import { OutputWriter } from './writer/index.js';
 import type { ProjectGoal } from './types/goal.js';
 import type { GenerationContext } from './types/generation.js';
+import type { CodebaseAnalysis } from './types/codebase.js';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -40,7 +42,7 @@ interface CLIOptions {
 program
   .name('superagents')
   .description('Context-aware Claude Code configuration generator')
-  .version('1.1.0')
+  .version('1.2.0')
   .option('--dry-run', 'Preview what would be generated without making API calls')
   .option('-v, --verbose', 'Show detailed output')
   .action(async (options: CLIOptions) => {
@@ -88,14 +90,27 @@ program
       const model = await selectModel();
       log.debug(`Selected model: ${model}`);
 
-      // Step 4: Analyze codebase
+      // Initialize cache
+      await cache.init();
+
+      // Step 4: Analyze codebase (with caching)
       const spinner = p.spinner();
       spinner.start('Analyzing your codebase...');
 
-      const analyzer = new CodebaseAnalyzer(process.cwd());
-      const codebaseAnalysis = await analyzer.analyze();
+      let codebaseAnalysis: CodebaseAnalysis;
+      const cachedAnalysis = await cache.getCachedAnalysis(process.cwd());
 
-      spinner.stop(pc.green('✓') + ' Codebase analyzed');
+      if (cachedAnalysis) {
+        codebaseAnalysis = cachedAnalysis;
+        spinner.stop(pc.green('✓') + ' Codebase analyzed ' + pc.dim('(cached)'));
+        log.verbose('Using cached codebase analysis');
+      } else {
+        const analyzer = new CodebaseAnalyzer(process.cwd());
+        codebaseAnalysis = await analyzer.analyze();
+        await cache.setCachedAnalysis(process.cwd(), codebaseAnalysis);
+        spinner.stop(pc.green('✓') + ' Codebase analyzed');
+        log.verbose('Codebase analysis cached for future runs');
+      }
 
       log.section('Codebase Analysis');
       log.table({
@@ -218,5 +233,50 @@ program
       process.exit(1);
     }
   });
+
+// Cache command
+program
+  .command('cache')
+  .description('Manage SuperAgents cache')
+  .option('--clear', 'Clear all cached data')
+  .option('--stats', 'Show cache statistics')
+  .action(async (options: { clear?: boolean; stats?: boolean }) => {
+    try {
+      await cache.init();
+
+      if (options.clear) {
+        await cache.clearCache();
+        console.log(pc.green('\n  ✓ Cache cleared successfully\n'));
+        return;
+      }
+
+      if (options.stats) {
+        const stats = await cache.getStats();
+        console.log(pc.bold('\n  Cache Statistics\n'));
+        console.log(pc.dim(`  Location: ${cache.getCacheDir()}`));
+        console.log(pc.dim(`  Analysis entries: ${stats.analysisCount}`));
+        console.log(pc.dim(`  Generation entries: ${stats.generationCount}`));
+        console.log(pc.dim(`  Total size: ${formatBytes(stats.totalSize)}\n`));
+        return;
+      }
+
+      // Show help if no option provided
+      console.log(pc.bold('\n  Cache Commands\n'));
+      console.log(pc.dim('  superagents cache --stats   Show cache statistics'));
+      console.log(pc.dim('  superagents cache --clear   Clear all cached data\n'));
+    } catch (error) {
+      console.log(pc.red('\n  ✗ Cache operation failed\n'));
+      console.log(pc.dim(`  Error: ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      process.exit(1);
+    }
+  });
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 program.parse();

@@ -1,6 +1,6 @@
 {
   "name": "superagents",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Context-aware Claude Code configuration generator - Creates AI-powered agents and skills tailored to your codebase",
   "main": "dist/index.js",
   "type": "module",
