@@ -8,9 +8,15 @@ export class AIGenerator {
         // No need to store API key - we get it from context
     }
     async generateAll(context) {
+        const totalItems = context.selectedAgents.length + context.selectedSkills.length + 1;
+        let completed = 0;
+        const log = (msg) => {
+            process.stdout.write(`\r\x1b[K  ${msg}`);
+        };
         // Generate agents using AI
         const agents = [];
         for (const agentName of context.selectedAgents) {
+            log(`Generating agent: ${agentName} (${++completed}/${totalItems})...`);
             try {
                 const content = await this.generateAgent(agentName, context);
                 agents.push({
@@ -21,7 +27,6 @@ export class AIGenerator {
             }
             catch (error) {
                 // Fallback to placeholder if AI generation fails
-                console.warn(`Warning: AI generation failed for agent ${agentName}, using enhanced placeholder`);
                 agents.push({
                     filename: `${agentName}.md`,
                     content: this.generatePlaceholderAgent(agentName, context),
@@ -32,6 +37,7 @@ export class AIGenerator {
         // Generate skills using AI
         const skills = [];
         for (const skillName of context.selectedSkills) {
+            log(`Generating skill: ${skillName} (${++completed}/${totalItems})...`);
             try {
                 const content = await this.generateSkill(skillName, context);
                 skills.push({
@@ -42,7 +48,6 @@ export class AIGenerator {
             }
             catch (error) {
                 // Fallback to placeholder if AI generation fails
-                console.warn(`Warning: AI generation failed for skill ${skillName}, using enhanced placeholder`);
                 skills.push({
                     filename: `${skillName}.md`,
                     content: this.generatePlaceholderSkill(skillName, context),
@@ -56,14 +61,16 @@ export class AIGenerator {
                 hookName: 'skill-loader'
             }];
         // Generate CLAUDE.md using AI
+        log(`Generating CLAUDE.md (${++completed}/${totalItems})...`);
         let claudeMd;
         try {
             claudeMd = await this.generateClaudeMdWithAI(context);
         }
         catch (error) {
-            console.warn('Warning: AI generation failed for CLAUDE.md, using template');
             claudeMd = this.generateClaudeMd(context);
         }
+        // Clear progress line
+        process.stdout.write('\r\x1b[K');
         const settings = {
             agents: context.selectedAgents,
             skills: context.selectedSkills,
@@ -112,8 +119,10 @@ export class AIGenerator {
      * Build comprehensive prompt for agent generation
      */
     buildAgentPrompt(agentName, context) {
-        const sampledFilesSection = context.sampledFiles.length > 0
-            ? `\n### Sample Files from Codebase\n\n${context.sampledFiles.map(f => `**${f.path}** (${f.purpose}):\n\`\`\`\n${f.content.slice(0, 2000)}\n\`\`\`\n`).join('\n')}`
+        // Limit sampled files to reduce prompt size (max 3 files, 1000 chars each)
+        const limitedFiles = context.sampledFiles.slice(0, 3);
+        const sampledFilesSection = limitedFiles.length > 0
+            ? `\n### Sample Files from Codebase\n\n${limitedFiles.map(f => `**${f.path}**:\n\`\`\`\n${f.content.slice(0, 1000)}\n\`\`\`\n`).join('\n')}`
             : '';
         return `You are generating a specialized Claude Code agent configuration file.
 
