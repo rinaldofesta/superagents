@@ -222,6 +222,70 @@ npm run lint       # ESLint
 
 ---
 
+## 💡 Ideas to Be Implemented
+
+### 🚀 Performance Optimizations
+
+| Idea | Impact | Effort | Description |
+|------|--------|--------|-------------|
+| **Codebase Cache** | High | Medium | Cache analysis results with file hash checksums. Skip re-analysis if nothing changed. |
+| **Parallel Generation** | High | Low | Generate multiple agents/skills concurrently with `Promise.all()` instead of sequentially. |
+| **Streaming Responses** | Medium | Medium | Use Claude streaming API to show generated content in real-time, improving perceived speed. |
+| **Lazy Preset Loading** | Low | Low | Only load the preset for the selected project type, not all 9 presets at startup. |
+| **Smart File Sampling** | Medium | Medium | Use AST parsing to extract only relevant code snippets instead of full file contents. |
+
+### 💰 Cost Reduction
+
+| Idea | Savings | Effort | Description |
+|------|---------|--------|-------------|
+| **Tiered Model Selection** | 40-60% | Low | Use Haiku for simple skills, Sonnet for agents, Opus only for complex CLAUDE.md. |
+| **Response Caching** | 50-80% | Medium | Cache generated outputs by goal+codebase hash. Reuse if same project re-runs. |
+| **Prompt Compression** | 20-30% | Medium | Reduce token usage with more concise system prompts and smarter context trimming. |
+| **Batch API Calls** | 10-20% | High | Combine multiple generation requests into fewer API calls where possible. |
+| **Local Templates** | 30-40% | Medium | Use local templates for common patterns, only call API for project-specific customization. |
+
+### ✨ New Features
+
+| Feature | Priority | Description |
+|---------|----------|-------------|
+| **`--dry-run` Flag** | High | Preview what would be generated without making API calls or writing files. |
+| **`--update` Mode** | High | Update existing `.claude/` folder incrementally instead of full regeneration. |
+| **Monorepo Support** | High | Detect and handle monorepos with multiple projects/packages. |
+| **Custom Templates** | Medium | Allow users to provide custom agent/skill templates in `~/.superagents/templates/`. |
+| **Config Export/Import** | Medium | Export configurations to share with team, import from URL or file. |
+| **VS Code Extension** | Medium | GUI for SuperAgents directly in VS Code with preview and customization. |
+| **Plugin System** | Medium | Allow custom analyzers and generators via plugins. |
+| **Web Interface** | Low | Browser-based UI for users who prefer not to use CLI. |
+| **Team Configs** | Low | Organization-wide shared configurations and presets. |
+| **Config Versioning** | Low | Track changes to generated configs with git-like history. |
+
+### 🔧 Technical Improvements
+
+| Improvement | Priority | Description |
+|-------------|----------|-------------|
+| **Test Coverage** | High | Add unit tests for analyzer, generator, and writer modules. |
+| **Error Recovery** | High | Better error handling with retry logic for API failures. |
+| **Offline Mode** | Medium | Work offline using cached/template-based generation. |
+| **Telemetry (Opt-in)** | Low | Anonymous usage stats to improve recommendations. |
+| **i18n Support** | Low | Internationalization for non-English users. |
+
+### 🎯 Quick Wins (Can Implement Now)
+
+1. **Parallel Generation** - Change sequential `for` loop to `Promise.all()` in generator
+2. **`--dry-run` Flag** - Add commander option, skip API calls, show preview
+3. **Tiered Models** - Use Haiku for skills, Sonnet for agents automatically
+4. **Response Caching** - Store outputs in `~/.superagents/cache/` with hash keys
+
+### 📊 Estimated Impact
+
+```
+Performance:  Up to 3x faster with parallel generation + caching
+Cost:         Up to 60% reduction with tiered models + caching
+UX:           Significantly better with dry-run and update modes
+```
+
+---
+
 _Created: 2026-01-27_
 _Status: ✅ Complete and Production Ready_
 _Repository: https://github.com/rinaldofesta/superagents_
