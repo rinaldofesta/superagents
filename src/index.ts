@@ -9,6 +9,10 @@
 import { Command } from 'commander';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import os from 'os';
+import path from 'path';
 import { displayBanner, displayError, displaySuccess } from './cli/banner.js';
 import { collectProjectGoal, selectModel, confirmSelections } from './cli/prompts.js';
 import { authenticateWithAnthropic } from './utils/auth.js';
@@ -19,6 +23,7 @@ import { OutputWriter } from './writer/index.js';
 import type { ProjectGoal } from './types/goal.js';
 import type { GenerationContext } from './types/generation.js';
 
+const execAsync = promisify(exec);
 const program = new Command();
 
 program
@@ -109,6 +114,45 @@ program
       } else {
         displayError('An unknown error occurred');
       }
+      process.exit(1);
+    }
+  });
+
+// Update command
+program
+  .command('update')
+  .description('Update SuperAgents to the latest version')
+  .action(async () => {
+    const installDir = path.join(os.homedir(), '.superagents');
+
+    console.log(pc.blue('\n  Updating SuperAgents...\n'));
+
+    try {
+      // Check if installed via git
+      const { stdout: gitCheck } = await execAsync(`cd "${installDir}" && git rev-parse --is-inside-work-tree 2>/dev/null`).catch(() => ({ stdout: '' }));
+
+      if (gitCheck.trim() === 'true') {
+        // Git-based installation - pull latest
+        const { stdout: pullOutput } = await execAsync(`cd "${installDir}" && git pull`);
+
+        if (pullOutput.includes('Already up to date')) {
+          console.log(pc.green('  ✓ SuperAgents is already up to date!\n'));
+        } else {
+          console.log(pc.green('  ✓ SuperAgents updated successfully!\n'));
+          console.log(pc.dim('  Changes:'));
+          console.log(pc.dim('  ' + pullOutput.trim().split('\n').join('\n  ')));
+          console.log('');
+        }
+      } else {
+        // npm-based installation
+        console.log(pc.yellow('  Updating via npm...\n'));
+        await execAsync('npm update -g superagents');
+        console.log(pc.green('  ✓ SuperAgents updated successfully!\n'));
+      }
+    } catch (error) {
+      console.log(pc.red('  ✗ Update failed\n'));
+      console.log(pc.dim(`  Error: ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      console.log(pc.dim('  Try manually: cd ~/.superagents && git pull\n'));
       process.exit(1);
     }
   });
