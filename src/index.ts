@@ -42,7 +42,7 @@ interface CLIOptions {
 program
   .name('superagents')
   .description('Context-aware Claude Code configuration generator')
-  .version('1.2.1')
+  .version('1.3.0')
   .option('--dry-run', 'Preview what would be generated without making API calls')
   .option('-v, --verbose', 'Show detailed output')
   .action(async (options: CLIOptions) => {
