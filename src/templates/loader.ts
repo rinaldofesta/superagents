@@ -60,7 +60,10 @@ const BUNDLED_SKILLS = [
   'vue',
   'vitest',
   'graphql',
-  'docker'
+  'docker',
+  'python',
+  'fastapi',
+  'mcp'
 ];
 
 /**
