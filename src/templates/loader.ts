@@ -33,8 +33,35 @@ interface TemplateVars {
 /**
  * Available base templates (bundled with the package)
  */
-const BUNDLED_AGENTS = ['backend-engineer', 'code-reviewer', 'debugger', 'frontend-specialist', 'devops-specialist'];
-const BUNDLED_SKILLS = ['typescript', 'nodejs', 'react', 'nextjs', 'tailwind'];
+const BUNDLED_AGENTS = [
+  'backend-engineer',
+  'code-reviewer',
+  'debugger',
+  'frontend-specialist',
+  'devops-specialist',
+  'security-analyst',
+  'database-specialist',
+  'api-designer',
+  'testing-specialist',
+  'docs-writer',
+  'performance-optimizer'
+];
+
+const BUNDLED_SKILLS = [
+  'typescript',
+  'nodejs',
+  'react',
+  'nextjs',
+  'tailwind',
+  'prisma',
+  'drizzle',
+  'express',
+  'supabase',
+  'vue',
+  'vitest',
+  'graphql',
+  'docker'
+];
 
 /**
  * Check if a local template exists for the given item
