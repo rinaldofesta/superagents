@@ -25,7 +25,7 @@ export const BANNER = `
 `;
 export function displayBanner() {
     console.log(pc.cyan(BANNER));
-    console.log(pc.dim("  Version 1.2.0\n"));
+    console.log(pc.dim("  Version 1.2.1\n"));
 }
 export function displaySuccess(summary) {
     console.log("\n" +
