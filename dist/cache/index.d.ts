@@ -12,6 +12,8 @@ export interface GenerationCacheKey {
 }
 export declare class CacheManager {
     private cacheDir;
+    private readonly CODEBASE_CACHE_TTL;
+    private readonly GENERATION_CACHE_TTL;
     constructor(customCacheDir?: string);
     /**
      * Initialize cache directory
@@ -23,6 +25,11 @@ export declare class CacheManager {
     getCacheDir(): string;
     /**
      * Generate a hash representing the current state of a codebase
+     *
+     * Hash strategy: Lock files (package.json, tsconfig.json) + directory structure.
+     * We hash structure (filenames) not content to keep hash stable across minor edits.
+     * This avoids cache invalidation on trivial changes like adding a comment.
+     *
      * Based on key configuration files and directory structure
      */
     getCodebaseHash(projectRoot: string): Promise<string>;

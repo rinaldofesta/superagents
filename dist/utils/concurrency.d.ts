@@ -1,11 +1,6 @@
 /**
  * Concurrency utilities for parallel API calls
  */
-export declare const API_CONCURRENCY = 3;
-/**
- * Create a new rate limiter
- */
-export declare const createLimiter: () => import("p-limit").LimitFunction;
 /**
  * Progress callback type
  */

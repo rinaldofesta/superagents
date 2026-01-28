@@ -31,6 +31,12 @@ interface ModelSelectionOptions {
 
 /**
  * Select the appropriate model based on task type and complexity
+ *
+ * Tiering strategy:
+ * - Haiku: Simple tasks (hooks, basic skills) - 80% cost reduction vs Sonnet
+ * - Sonnet: Complex tasks (agents, advanced skills) - baseline
+ * - Opus: Only when user explicitly selects it for CLAUDE.md
+ * Never exceed user's selected tier to respect budget constraints.
  */
 export function selectModel(options: ModelSelectionOptions): string {
   const { userSelectedModel, generationType, complexity = 'medium' } = options;
@@ -82,18 +88,6 @@ export function getSkillComplexity(skillName: string): 'simple' | 'medium' | 'co
   if (simpleSkills.some(s => lowerName.includes(s))) return 'simple';
   if (complexSkills.some(s => lowerName.includes(s))) return 'complex';
   return 'medium';
-}
-
-/**
- * Estimate token cost for a generation
- */
-export function estimateTokenCost(
-  tier: ModelTier,
-  inputTokens: number,
-  outputTokens: number
-): number {
-  const cost = MODEL_COSTS[tier];
-  return (inputTokens * cost.input + outputTokens * cost.output) / 1_000_000;
 }
 
 /**

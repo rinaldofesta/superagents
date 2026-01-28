@@ -156,7 +156,7 @@ program
 
       // If dry-run, show preview and exit
       if (isDryRun) {
-        displayDryRunPreview(context, recommendations);
+        displayDryRunPreview(context);
         return;
       }
 

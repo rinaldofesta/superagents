@@ -43,10 +43,5 @@ export declare class AIGenerator {
      * Execute a prompt using the appropriate auth method
      */
     private executePrompt;
-    /**
-     * Execute a prompt with streaming for real-time output
-     * Shows content as it's being generated (verbose mode only)
-     */
-    private executeWithStreaming;
 }
 //# sourceMappingURL=index.d.ts.map

@@ -15,7 +15,17 @@ const TOKEN_ESTIMATES = {
 /**
  * Display dry-run preview
  */
-export function displayDryRunPreview(context, _recommendations) {
+export function displayDryRunPreview(context) {
+    // Validate context to prevent runtime errors
+    if (!context.selectedAgents || !context.selectedSkills) {
+        throw new Error('Invalid context: missing selectedAgents or selectedSkills');
+    }
+    if (!context.goal || !context.goal.description) {
+        throw new Error('Invalid context: missing goal information');
+    }
+    if (!context.codebase || !context.codebase.projectRoot) {
+        throw new Error('Invalid context: missing codebase information');
+    }
     console.log('\n' + pc.yellow('═'.repeat(60)));
     console.log(pc.yellow(pc.bold('  DRY RUN - No files will be created')));
     console.log(pc.yellow('═'.repeat(60)) + '\n');

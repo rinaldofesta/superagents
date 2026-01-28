@@ -2,7 +2,6 @@
  * Verbose logging utility for SuperAgents
  */
 export declare function setVerbose(enabled: boolean): void;
-export declare function isVerbose(): boolean;
 export declare const log: {
     info: (message: string) => void;
     success: (message: string) => void;

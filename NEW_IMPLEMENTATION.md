@@ -1,1861 +1,341 @@
-# SuperAgents - New Implementation Plan
+# SuperAgents - Implementation Roadmap
 
-> Detailed step-by-step guide to implement all planned improvements
+> Phase-based implementation plan with progress tracking
 
 ---
 
 ## Progress Overview
 
-| Phase | Status | Version | Completed |
-|-------|--------|---------|-----------|
-| Phase 1: Quick Wins | ✅ DONE | v1.1.0 | 2026-01-27 |
-| Phase 2: Performance | ✅ DONE | v1.2.0 | 2026-01-27 |
-| Phase 3: Cost Reduction | ⏳ Pending | v1.3.0 | - |
-| Phase 4: New Features | ⏳ Pending | v1.3.0 | - |
-| Phase 5: Technical | ⏳ Pending | v1.4.0 | - |
-| Phase 6: Advanced | ⏳ Pending | v2.0.0 | - |
+| Phase | Status | Version | Completed | Time Spent |
+|-------|--------|---------|-----------|------------|
+| Phase 1: Quick Wins | ✅ DONE | v1.1.0 | 2026-01-27 | ~5h |
+| Phase 2: Performance | ✅ DONE | v1.2.0 | 2026-01-27 | ~3h |
+| **Refactoring: Code Quality** | ✅ DONE | v1.2.1 | 2026-01-28 | ~2h |
+| Phase 3: Cost Reduction | ⏳ Pending | v1.3.0 | - | Est. 7-9h |
+| Phase 4: New Features | ⏳ Pending | v1.3.0 | - | Est. 15-20h |
+| Phase 5: Technical | ⏳ Pending | v1.4.0 | - | Est. 10-14h |
+| Phase 6: Advanced | ⏳ Pending | v2.0.0 | - | Est. 35-50h |
 
-**Current Version:** 1.2.0 | **Overall Progress:** 2/6 phases complete
-
----
-
-## Table of Contents
-
-1. [Implementation Order](#implementation-order)
-2. [Phase 1: Quick Wins](#phase-1-quick-wins)
-3. [Phase 2: Performance Optimizations](#phase-2-performance-optimizations)
-4. [Phase 3: Cost Reduction](#phase-3-cost-reduction)
-5. [Phase 4: New Features](#phase-4-new-features)
-6. [Phase 5: Technical Improvements](#phase-5-technical-improvements)
-7. [Phase 6: Advanced Features](#phase-6-advanced-features)
-8. [Testing Strategy](#testing-strategy)
-9. [Rollout Plan](#rollout-plan)
+**Current Version:** 1.2.1 | **Overall Progress:** 2/6 feature phases + refactoring complete (10h spent, ~67-87h remaining)
 
 ---
 
-## Implementation Order
+## Quick Reference
 
-### Priority Matrix
+### Completed Features ✅
+- ✅ Parallel generation (3 concurrent)
+- ✅ Tiered model selection (Haiku/Sonnet/Opus)
+- ✅ --dry-run flag (cost estimation)
+- ✅ --verbose flag (debug logging)
+- ✅ Codebase caching (24h TTL)
+- ✅ Response caching (7d TTL)
+- ✅ Input validation (prevents runtime errors)
+- ✅ Code quality improvements (dead code removed, ~77 LOC reduction)
 
-```
-                    HIGH IMPACT
-                        │
-     ┌──────────────────┼──────────────────┐
-     │                  │                  │
-     │  P1: Quick Wins  │  P2: Performance │
-     │  - Parallel Gen  │  - Caching       │
-     │  - Tiered Models │  - Streaming     │
-     │  - Dry-run       │                  │
-LOW  │                  │                  │  HIGH
-EFFORT ─────────────────┼───────────────────── EFFORT
-     │                  │                  │
-     │  P3: Features    │  P4: Advanced    │
-     │  - Update mode   │  - VS Code Ext   │
-     │  - Monorepo      │  - Plugin System │
-     │                  │                  │
-     └──────────────────┼──────────────────┘
-                        │
-                    LOW IMPACT
+### CLI Commands Available
+```bash
+superagents                    # Generate configuration
+superagents --dry-run          # Preview without API calls
+superagents --verbose          # Show detailed output
+superagents cache --stats      # Show cache statistics
+superagents cache --clear      # Clear all cached data
+superagents update             # Update to latest version
 ```
 
-### Dependency Graph
-
-```
-Phase 1 (Quick Wins)
-    ├── 1.1 Parallel Generation (no deps)
-    ├── 1.2 Tiered Model Selection (no deps)
-    ├── 1.3 --dry-run Flag (no deps)
-    └── 1.4 --verbose Flag (no deps)
-            │
-            ▼
-Phase 2 (Performance)
-    ├── 2.1 Codebase Cache (depends on 1.4 for logging)
-    ├── 2.2 Response Cache (depends on 2.1 for hash logic)
-    └── 2.3 Streaming Responses (no deps)
-            │
-            ▼
-Phase 3 (Cost Reduction)
-    ├── 3.1 Prompt Compression (no deps)
-    ├── 3.2 Local Templates (no deps)
-    └── 3.3 Smart Context Trimming (depends on 3.1)
-            │
-            ▼
-Phase 4 (New Features)
-    ├── 4.1 --update Mode (depends on 2.1, 2.2)
-    ├── 4.2 Monorepo Support (depends on 2.1)
-    ├── 4.3 Custom Templates (depends on 3.2)
-    └── 4.4 Config Export/Import (no deps)
-            │
-            ▼
-Phase 5 (Technical)
-    ├── 5.1 Test Coverage (can start anytime)
-    ├── 5.2 Error Recovery (no deps)
-    └── 5.3 Offline Mode (depends on 3.2, 2.2)
-            │
-            ▼
-Phase 6 (Advanced)
-    ├── 6.1 VS Code Extension (depends on 4.4)
-    ├── 6.2 Plugin System (depends on all)
-    └── 6.3 Web Interface (depends on 4.4)
-```
+### Cache Location
+`~/.superagents/cache/`
 
 ---
 
 ## Phase 1: Quick Wins ✅ COMPLETED
 
-> **Implemented:** 2026-01-27 | **Version:** 1.1.0
+> **Implemented:** 2026-01-27 | **Version:** 1.1.0 | **Time:** ~5 hours
 
-### 1.1 Parallel Generation ✅
+### Summary
 
-**Goal:** Generate multiple agents/skills concurrently instead of sequentially.
+| Feature | Files Created | Key Functions |
+|---------|---------------|---------------|
+| Parallel Generation | `src/utils/concurrency.ts` | `parallelGenerate()`, `parallelGenerateWithErrors()` |
+| Tiered Models | `src/utils/model-selector.ts` | `selectModel()`, `getSkillComplexity()` |
+| --dry-run | `src/cli/dry-run.ts` | `displayDryRunPreview()` |
+| --verbose | `src/utils/logger.ts` | `log.debug()`, `log.verbose()`, `setVerbose()` |
 
-**Current Code** (`src/generator/index.ts`):
-```typescript
-// Current: Sequential generation
-for (const agentName of context.selectedAgents) {
-  const agent = await this.generateAgent(context, agentName);
-  outputs.agents.push(agent);
-}
-```
-
-**New Code:**
-```typescript
-// New: Parallel generation with concurrency limit
-import pLimit from 'p-limit';
-
-const limit = pLimit(3); // Max 3 concurrent API calls
-
-const agentPromises = context.selectedAgents.map(agentName =>
-  limit(() => this.generateAgent(context, agentName))
-);
-
-const agents = await Promise.all(agentPromises);
-outputs.agents.push(...agents);
-```
-
-**Implementation Steps:**
-
-1. **Install dependency:**
-   ```bash
-   npm install p-limit
-   ```
-
-2. **Create file** `src/utils/concurrency.ts`:
-   ```typescript
-   import pLimit from 'p-limit';
-
-   // Limit concurrent API calls to avoid rate limiting
-   export const API_CONCURRENCY = 3;
-   export const createLimiter = () => pLimit(API_CONCURRENCY);
-
-   export async function parallelGenerate<T>(
-     items: string[],
-     generator: (item: string) => Promise<T>,
-     onProgress?: (completed: number, total: number, item: string) => void
-   ): Promise<T[]> {
-     const limit = createLimiter();
-     let completed = 0;
-
-     const promises = items.map(item =>
-       limit(async () => {
-         const result = await generator(item);
-         completed++;
-         onProgress?.(completed, items.length, item);
-         return result;
-       })
-     );
-
-     return Promise.all(promises);
-   }
-   ```
-
-3. **Update** `src/generator/index.ts`:
-   ```typescript
-   import { parallelGenerate } from '../utils/concurrency.js';
-
-   async generateAll(context: GenerationContext): Promise<GeneratedOutputs> {
-     const outputs: GeneratedOutputs = {
-       agents: [],
-       skills: [],
-       hooks: [],
-       claudeMd: '',
-       settings: {}
-     };
-
-     const totalItems = context.selectedAgents.length + context.selectedSkills.length + 1;
-     let completed = 0;
-
-     const spinner = ora({
-       text: `Generating... 0%`,
-       spinner: 'dots'
-     }).start();
-
-     const updateProgress = (item: string) => {
-       completed++;
-       const percent = Math.round((completed / totalItems) * 100);
-       spinner.text = `[${percent}%] ✓ ${item}`;
-     };
-
-     // Generate agents in parallel
-     outputs.agents = await parallelGenerate(
-       context.selectedAgents,
-       (name) => this.generateAgent(context, name),
-       (_, __, item) => updateProgress(`Agent: ${item}`)
-     );
-
-     // Generate skills in parallel
-     outputs.skills = await parallelGenerate(
-       context.selectedSkills,
-       (name) => this.generateSkill(context, name),
-       (_, __, item) => updateProgress(`Skill: ${item}`)
-     );
-
-     // Generate CLAUDE.md (single call)
-     outputs.claudeMd = await this.generateClaudeMd(context);
-     updateProgress('CLAUDE.md');
-
-     spinner.succeed(`Generation complete! [100%]`);
-     return outputs;
-   }
-   ```
-
-4. **Test:**
-   ```bash
-   npm run build
-   superagents  # Should be noticeably faster with multiple agents/skills
-   ```
-
-**Files modified:**
-- [x] `package.json` - Added p-limit ^7.2.0
-- [x] `src/utils/concurrency.ts` - Created with `parallelGenerate()` and `parallelGenerateWithErrors()`
-- [x] `src/generator/index.ts` - Updated to use parallel generation
-
-**Actual time:** ~1 hour
-
-**Test results:**
-- 5 items × 100ms = ~200ms (parallel) vs ~500ms (sequential)
-- Concurrency limit: 3 concurrent API calls
+### Key Improvements
+- **Speed:** 3x faster with parallel generation (200ms vs 500ms for 5 items)
+- **Cost:** ~40% reduction using Haiku for simple skills
+- **UX:** Dry-run shows cost estimate before generation
+- **Debug:** Verbose mode shows model selection and streaming output
 
 ---
 
-### 1.2 Tiered Model Selection ✅
+## Phase 2: Performance ✅ COMPLETED
 
-**Goal:** Use cheaper/faster models for simpler tasks automatically.
+> **Implemented:** 2026-01-27 | **Version:** 1.2.0 | **Time:** ~3 hours
 
-**Strategy:**
-- **Haiku** (`claude-3-5-haiku-20241022`): Simple skills, hooks
-- **Sonnet** (`claude-sonnet-4-5-20250929`): Agents, complex skills
-- **Opus** (`claude-opus-4-5-20251101`): CLAUDE.md (only if user selected Opus)
+### Summary
 
-**Implementation Steps:**
+| Feature | Files Modified | Key Functions |
+|---------|----------------|---------------|
+| Codebase Cache | `src/cache/index.ts` | `getCodebaseHash()`, `getCachedAnalysis()`, `setCachedAnalysis()` |
+| Response Cache | `src/cache/index.ts` | `getCachedGeneration()`, `setCachedGeneration()` |
 
-1. **Create file** `src/utils/model-selector.ts`:
-   ```typescript
-   export type ModelTier = 'haiku' | 'sonnet' | 'opus';
-   export type GenerationType = 'agent' | 'skill' | 'hook' | 'claude-md';
-
-   export const MODEL_IDS = {
-     haiku: 'claude-3-5-haiku-20241022',
-     sonnet: 'claude-sonnet-4-5-20250929',
-     opus: 'claude-opus-4-5-20251101'
-   } as const;
-
-   // Cost per 1M tokens (approximate)
-   export const MODEL_COSTS = {
-     haiku: { input: 0.25, output: 1.25 },
-     sonnet: { input: 3, output: 15 },
-     opus: { input: 15, output: 75 }
-   } as const;
-
-   interface ModelSelectionOptions {
-     userSelectedModel: 'sonnet' | 'opus';
-     generationType: GenerationType;
-     complexity?: 'simple' | 'medium' | 'complex';
-   }
-
-   export function selectModel(options: ModelSelectionOptions): string {
-     const { userSelectedModel, generationType, complexity = 'medium' } = options;
-
-     // Simple mapping based on generation type
-     const tierMap: Record<GenerationType, ModelTier> = {
-       'hook': 'haiku',           // Hooks are simple bash scripts
-       'skill': complexity === 'simple' ? 'haiku' : 'sonnet',
-       'agent': 'sonnet',         // Agents need good reasoning
-       'claude-md': userSelectedModel  // Respect user's choice for main doc
-     };
-
-     const tier = tierMap[generationType];
-
-     // Never use a model more expensive than user selected
-     if (tier === 'opus' && userSelectedModel === 'sonnet') {
-       return MODEL_IDS.sonnet;
-     }
-
-     return MODEL_IDS[tier];
-   }
-
-   // Determine skill complexity based on name
-   export function getSkillComplexity(skillName: string): 'simple' | 'medium' | 'complex' {
-     const simpleSkills = ['markdown', 'git', 'npm', 'eslint', 'prettier'];
-     const complexSkills = ['nextjs', 'react', 'typescript', 'graphql', 'kubernetes'];
-
-     if (simpleSkills.includes(skillName)) return 'simple';
-     if (complexSkills.includes(skillName)) return 'complex';
-     return 'medium';
-   }
-   ```
-
-2. **Update** `src/generator/index.ts`:
-   ```typescript
-   import { selectModel, getSkillComplexity } from '../utils/model-selector.js';
-
-   async generateAgent(context: GenerationContext, agentName: string): Promise<AgentOutput> {
-     const model = selectModel({
-       userSelectedModel: context.selectedModel,
-       generationType: 'agent'
-     });
-
-     // Use model in API call...
-   }
-
-   async generateSkill(context: GenerationContext, skillName: string): Promise<SkillOutput> {
-     const complexity = getSkillComplexity(skillName);
-     const model = selectModel({
-       userSelectedModel: context.selectedModel,
-       generationType: 'skill',
-       complexity
-     });
-
-     // Use model in API call...
-   }
-   ```
-
-3. **Add verbose logging** (optional, for debugging):
-   ```typescript
-   if (context.verbose) {
-     console.log(pc.dim(`  Using model: ${model} for ${agentName}`));
-   }
-   ```
-
-**Files modified:**
-- [x] `src/utils/model-selector.ts` - Created with `selectModel()`, `getSkillComplexity()`, `MODEL_IDS`, `MODEL_COSTS`
-- [x] `src/generator/index.ts` - Updated to use tiered model selection
-- [x] `src/types/generation.ts` - Added `verbose` and `dryRun` to GenerationContext
-
-**Actual time:** ~1 hour
-
-**Test results:**
-- Agent → Sonnet ✅
-- Simple skill (git, markdown) → Haiku ✅
-- Complex skill (nextjs, typescript) → Sonnet ✅
-- CLAUDE.md respects user selection ✅
+### Key Improvements
+- **Codebase Cache:** Skip re-analysis on unchanged projects (24h TTL)
+- **Response Cache:** Reuse generations for same goal+codebase (7d TTL)
+- **New Commands:** `superagents cache --stats`, `superagents cache --clear`
 
 ---
 
-### 1.3 --dry-run Flag ✅
+## Refactoring: Code Quality Improvements ✅ COMPLETED
 
-**Goal:** Preview what would be generated without making API calls.
+> **Implemented:** 2026-01-28 | **Version:** 1.2.1 | **Time:** ~2 hours
 
-**Implementation Steps:**
+### Summary
 
-1. **Update** `src/index.ts` to add flag:
-   ```typescript
-   program
-     .name('superagents')
-     .description('Context-aware Claude Code configuration generator')
-     .version('1.0.0')
-     .option('--dry-run', 'Preview what would be generated without making API calls')
-     .option('-v, --verbose', 'Show detailed output')
-     .action(async (options) => {
-       const isDryRun = options.dryRun || false;
-       const isVerbose = options.verbose || false;
+Comprehensive refactoring to align codebase with new coding principles from CLAUDE.md:
+- Think Before Coding
+- Simplicity First
+- Surgical Changes
+- Goal-Driven Execution
 
-       // ... existing code ...
+| Phase | Focus | LOC Change | Files Modified |
+|-------|-------|------------|----------------|
+| Phase 1: Cleanup | Dead code removal, comments, validation | -10 +40 | 6 files |
+| Phase 2: Simplification | Remove streaming, centralize constants | -55 | 3 files |
+| Phase 3: Optimization | Remove unused exports | -12 | 2 files |
 
-       if (isDryRun) {
-         displayDryRunPreview(context, recommendations);
-         return;
-       }
+### Key Improvements
 
-       // ... continue with actual generation ...
-     });
-   ```
+**Phase 1: Low-Risk Cleanup**
+- ✅ Removed unused `isVerbose()` function from logger
+- ✅ Removed unused `_recommendations` parameter from dry-run
+- ✅ Added explanatory comments to complex logic (streaming, caching, model selection)
+- ✅ Added input validation to `generateAll()`, `getCachedAnalysis()`, `displayDryRunPreview()`
 
-2. **Create** `src/cli/dry-run.ts`:
-   ```typescript
-   import pc from 'picocolors';
-   import type { GenerationContext } from '../types/generation.js';
-   import type { Recommendations } from '../types/config.js';
-   import { selectModel, getSkillComplexity, MODEL_COSTS } from '../utils/model-selector.js';
+**Phase 2: Simplify Over-Engineering**
+- ✅ Centralized cache TTL constants (`CODEBASE_CACHE_TTL`, `GENERATION_CACHE_TTL`)
+- ✅ Removed streaming implementation (~47 LOC) - added complexity for minimal value
+- ✅ Kept `getModelTier()` function - prevents code duplication (used 3 times)
 
-   export function displayDryRunPreview(
-     context: GenerationContext,
-     recommendations: Recommendations
-   ): void {
-     console.log('\n' + pc.yellow('═'.repeat(60)));
-     console.log(pc.yellow(pc.bold('  DRY RUN - No files will be created')));
-     console.log(pc.yellow('═'.repeat(60)) + '\n');
+**Phase 3: Structural Improvements**
+- ✅ Removed unused `estimateTokenCost()` function (~8 LOC)
+- ✅ Made `API_CONCURRENCY` module-private (not used externally)
+- ✅ Made `createLimiter()` module-private (not used externally)
+- ✅ Skipped prompt template extraction - current structure already optimal
+- ✅ Verified no custom error classes exist - already using plain Error
 
-     // Show what would be generated
-     console.log(pc.bold('Would generate:\n'));
+### Files Modified
 
-     console.log(pc.cyan('  Agents:'));
-     for (const agent of context.selectedAgents) {
-       const model = selectModel({
-         userSelectedModel: context.selectedModel,
-         generationType: 'agent'
-       });
-       console.log(pc.dim(`    → ${agent} (using ${model})`));
-     }
+- `src/utils/logger.ts` - Removed dead code
+- `src/cli/dry-run.ts` - Removed unused param, added validation
+- `src/index.ts` - Updated function call
+- `src/generator/index.ts` - Added validation, removed streaming, added comments
+- `src/cache/index.ts` - Centralized TTL constants, added validation, added comments
+- `src/utils/model-selector.ts` - Removed unused function, added comments
+- `src/utils/concurrency.ts` - Made internal helpers private
 
-     console.log(pc.cyan('\n  Skills:'));
-     for (const skill of context.selectedSkills) {
-       const complexity = getSkillComplexity(skill);
-       const model = selectModel({
-         userSelectedModel: context.selectedModel,
-         generationType: 'skill',
-         complexity
-       });
-       console.log(pc.dim(`    → ${skill} (${complexity}, using ${model})`));
-     }
+### Cumulative Results
 
-     console.log(pc.cyan('\n  Other files:'));
-     console.log(pc.dim('    → CLAUDE.md'));
-     console.log(pc.dim('    → settings.json'));
-     console.log(pc.dim('    → hooks/skill-loader.sh'));
+- **Total LOC Removed:** ~77 lines
+- **Comments Added:** ~15 lines (documentation)
+- **Validation Added:** ~25 lines (error prevention)
+- **Net Code Reduction:** ~37 lines + significantly reduced complexity
 
-     // Show output location
-     console.log(pc.bold('\nOutput directory:'));
-     console.log(pc.dim(`  ${context.codebase.projectRoot}/.claude/`));
+### Behavioral Changes
 
-     // Estimate cost
-     const estimate = estimateCost(context);
-     console.log(pc.bold('\nEstimated API cost:'));
-     console.log(pc.dim(`  ~$${estimate.toFixed(4)} USD`));
+- **Verbose mode:** No longer streams output (same result, no real-time updates)
+- **Error handling:** Better validation with clear error messages
+- **Code clarity:** Complex logic now has explanatory comments
 
-     // Show command to run for real
-     console.log(pc.bold('\nTo generate for real, run:'));
-     console.log(pc.green('  superagents\n'));
-   }
+### Verification
 
-   function estimateCost(context: GenerationContext): number {
-     // Rough estimates based on typical token usage
-     const TOKENS_PER_AGENT = { input: 2000, output: 3000 };
-     const TOKENS_PER_SKILL = { input: 1500, output: 2000 };
-     const TOKENS_CLAUDE_MD = { input: 3000, output: 4000 };
-
-     let totalCost = 0;
-
-     // Agents
-     for (const agent of context.selectedAgents) {
-       const model = selectModel({
-         userSelectedModel: context.selectedModel,
-         generationType: 'agent'
-       });
-       const tier = model.includes('haiku') ? 'haiku' : model.includes('opus') ? 'opus' : 'sonnet';
-       const cost = MODEL_COSTS[tier];
-       totalCost += (TOKENS_PER_AGENT.input * cost.input + TOKENS_PER_AGENT.output * cost.output) / 1_000_000;
-     }
-
-     // Skills
-     for (const skill of context.selectedSkills) {
-       const complexity = getSkillComplexity(skill);
-       const model = selectModel({
-         userSelectedModel: context.selectedModel,
-         generationType: 'skill',
-         complexity
-       });
-       const tier = model.includes('haiku') ? 'haiku' : model.includes('opus') ? 'opus' : 'sonnet';
-       const cost = MODEL_COSTS[tier];
-       totalCost += (TOKENS_PER_SKILL.input * cost.input + TOKENS_PER_SKILL.output * cost.output) / 1_000_000;
-     }
-
-     // CLAUDE.md
-     const claudeModel = selectModel({
-       userSelectedModel: context.selectedModel,
-       generationType: 'claude-md'
-     });
-     const claudeTier = claudeModel.includes('haiku') ? 'haiku' : claudeModel.includes('opus') ? 'opus' : 'sonnet';
-     const claudeCost = MODEL_COSTS[claudeTier];
-     totalCost += (TOKENS_CLAUDE_MD.input * claudeCost.input + TOKENS_CLAUDE_MD.output * claudeCost.output) / 1_000_000;
-
-     return totalCost;
-   }
-   ```
-
-3. **Update** `src/cli/banner.ts` to export new function:
-   ```typescript
-   export { displayDryRunPreview } from './dry-run.js';
-   ```
-
-4. **Test:**
-   ```bash
-   npm run build
-   superagents --dry-run
-   ```
-
-**Files modified:**
-- [x] `src/index.ts` - Added --dry-run and --verbose flags
-- [x] `src/cli/dry-run.ts` - Created with `displayDryRunPreview()` and cost estimation
-- [x] `src/utils/model-selector.ts` - Exported MODEL_COSTS
-
-**Actual time:** ~2 hours
-
-**Test results:**
-- Shows project info, agents, skills with models ✅
-- Shows estimated API usage and cost ✅
-- Model breakdown (Haiku/Sonnet/Opus calls) ✅
+- ✅ Build passes: `npm run build`
+- ✅ All tests pass: 10/10 in cache.test.ts
+- ✅ TypeScript strict mode: No errors
 
 ---
 
-### 1.4 --verbose Flag ✅
+## Phase 3: Cost Reduction (Pending)
 
-**Goal:** Show detailed logging for debugging and transparency.
+> **Target Version:** 1.3.0 | **Estimated Time:** 7-9 hours
 
-**Implementation Steps:**
+### Goals
+- Reduce token usage by 30-50%
+- Use local templates for common patterns
+- Trim unnecessary context
 
-1. **Create** `src/utils/logger.ts`:
-   ```typescript
-   import pc from 'picocolors';
+### Features
 
-   let verboseMode = false;
+#### 3.1 Prompt Compression (~3-4h)
+**Goal:** More efficient prompts with less redundancy
 
-   export function setVerbose(enabled: boolean): void {
-     verboseMode = enabled;
-   }
-
-   export function isVerbose(): boolean {
-     return verboseMode;
-   }
-
-   export const log = {
-     info: (message: string) => {
-       console.log(pc.blue('ℹ') + ' ' + message);
-     },
-
-     success: (message: string) => {
-       console.log(pc.green('✓') + ' ' + message);
-     },
-
-     warn: (message: string) => {
-       console.log(pc.yellow('⚠') + ' ' + message);
-     },
-
-     error: (message: string) => {
-       console.log(pc.red('✗') + ' ' + message);
-     },
-
-     debug: (message: string) => {
-       if (verboseMode) {
-         console.log(pc.dim('[DEBUG] ' + message));
-       }
-     },
-
-     verbose: (message: string) => {
-       if (verboseMode) {
-         console.log(pc.dim('  → ' + message));
-       }
-     },
-
-     section: (title: string) => {
-       if (verboseMode) {
-         console.log('\n' + pc.bold(pc.cyan(title)));
-       }
-     }
-   };
-   ```
-
-2. **Update** `src/index.ts`:
-   ```typescript
-   import { setVerbose, log } from './utils/logger.js';
-
-   .action(async (options) => {
-     setVerbose(options.verbose || false);
-
-     log.debug('Starting SuperAgents...');
-     log.debug(`Working directory: ${process.cwd()}`);
-
-     // ... rest of code ...
-   });
-   ```
-
-3. **Use throughout codebase:**
-   ```typescript
-   // In analyzer
-   log.debug(`Detected framework: ${framework}`);
-   log.verbose(`Found ${files.length} source files`);
-
-   // In generator
-   log.debug(`Generating agent: ${agentName}`);
-   log.verbose(`Using model: ${model}`);
-   log.verbose(`Prompt tokens: ~${estimatedTokens}`);
-   ```
-
-**Files modified:**
-- [x] `src/utils/logger.ts` - Created with `setVerbose()`, `isVerbose()`, `log.debug()`, `log.verbose()`, `log.section()`, `log.table()`
-- [x] `src/index.ts` - Added --verbose flag and integrated logger throughout
-- [x] `src/generator/index.ts` - Added verbose logging for model selection and progress
-
-**Actual time:** ~1 hour
-
-**Test results:**
-- Verbose off: debug/verbose messages hidden ✅
-- Verbose on: debug/verbose messages shown ✅
-- log.table() formats data correctly ✅
-- log.section() shows section headers ✅
-
----
-
-## Phase 1 Summary
-
-| Feature | Status | Files Created | Key Functions |
-|---------|--------|---------------|---------------|
-| 1.1 Parallel Gen | ✅ | `src/utils/concurrency.ts` | `parallelGenerate()`, `parallelGenerateWithErrors()` |
-| 1.2 Tiered Models | ✅ | `src/utils/model-selector.ts` | `selectModel()`, `getSkillComplexity()` |
-| 1.3 --dry-run | ✅ | `src/cli/dry-run.ts` | `displayDryRunPreview()` |
-| 1.4 --verbose | ✅ | `src/utils/logger.ts` | `log.debug()`, `log.verbose()`, `setVerbose()` |
-
-**Total time:** ~5 hours | **Version:** 1.1.0
-
----
-
-## Phase 2: Performance Optimizations ✅ COMPLETED
-
-> **Implemented:** 2026-01-27 | **Version:** 1.2.0
-
-### 2.1 Codebase Cache ✅
-
-**Goal:** Cache codebase analysis results to skip re-analysis on unchanged projects.
-
-**Strategy:**
-1. Hash key files (package.json, tsconfig.json, key source files)
-2. Store analysis result with hash
-3. On next run, compare hashes - if same, use cached result
-
-**Implementation Steps:**
-
-1. **Create** `src/cache/index.ts`:
-   ```typescript
-   import fs from 'fs-extra';
-   import path from 'path';
-   import crypto from 'crypto';
-   import os from 'os';
-   import type { CodebaseAnalysis } from '../types/codebase.js';
-
-   const CACHE_DIR = path.join(os.homedir(), '.superagents', 'cache');
-   const CACHE_VERSION = '1';  // Increment when cache format changes
-
-   interface CacheEntry<T> {
-     version: string;
-     hash: string;
-     timestamp: string;
-     data: T;
-   }
-
-   export class CacheManager {
-     private cacheDir: string;
-
-     constructor() {
-       this.cacheDir = CACHE_DIR;
-     }
-
-     async init(): Promise<void> {
-       await fs.ensureDir(this.cacheDir);
-     }
-
-     async getCodebaseHash(projectRoot: string): Promise<string> {
-       const filesToHash = [
-         'package.json',
-         'tsconfig.json',
-         'package-lock.json',
-         'yarn.lock',
-         'pnpm-lock.yaml'
-       ];
-
-       const hashes: string[] = [];
-
-       for (const file of filesToHash) {
-         const filePath = path.join(projectRoot, file);
-         if (await fs.pathExists(filePath)) {
-           const content = await fs.readFile(filePath, 'utf-8');
-           hashes.push(crypto.createHash('md5').update(content).digest('hex'));
-         }
-       }
-
-       // Also hash the src directory structure (not content, just names)
-       const srcDir = path.join(projectRoot, 'src');
-       if (await fs.pathExists(srcDir)) {
-         const files = await this.getFileList(srcDir);
-         hashes.push(crypto.createHash('md5').update(files.join('\n')).digest('hex'));
-       }
-
-       return crypto.createHash('md5').update(hashes.join('-')).digest('hex');
-     }
-
-     private async getFileList(dir: string): Promise<string[]> {
-       const entries = await fs.readdir(dir, { withFileTypes: true });
-       const files: string[] = [];
-
-       for (const entry of entries) {
-         const fullPath = path.join(dir, entry.name);
-         if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-           files.push(...await this.getFileList(fullPath));
-         } else if (entry.isFile()) {
-           files.push(fullPath);
-         }
-       }
-
-       return files.sort();
-     }
-
-     async getCachedAnalysis(projectRoot: string): Promise<CodebaseAnalysis | null> {
-       const hash = await this.getCodebaseHash(projectRoot);
-       const cacheFile = path.join(this.cacheDir, `analysis-${hash}.json`);
-
-       if (await fs.pathExists(cacheFile)) {
-         try {
-           const entry: CacheEntry<CodebaseAnalysis> = await fs.readJson(cacheFile);
-
-           // Check version compatibility
-           if (entry.version !== CACHE_VERSION) {
-             return null;
-           }
-
-           // Check if cache is too old (24 hours)
-           const age = Date.now() - new Date(entry.timestamp).getTime();
-           if (age > 24 * 60 * 60 * 1000) {
-             return null;
-           }
-
-           return entry.data;
-         } catch {
-           return null;
-         }
-       }
-
-       return null;
-     }
-
-     async setCachedAnalysis(projectRoot: string, analysis: CodebaseAnalysis): Promise<void> {
-       const hash = await this.getCodebaseHash(projectRoot);
-       const cacheFile = path.join(this.cacheDir, `analysis-${hash}.json`);
-
-       const entry: CacheEntry<CodebaseAnalysis> = {
-         version: CACHE_VERSION,
-         hash,
-         timestamp: new Date().toISOString(),
-         data: analysis
-       };
-
-       await fs.writeJson(cacheFile, entry, { spaces: 2 });
-     }
-
-     async clearCache(): Promise<void> {
-       await fs.emptyDir(this.cacheDir);
-     }
-   }
-
-   export const cache = new CacheManager();
-   ```
-
-2. **Update** `src/index.ts`:
-   ```typescript
-   import { cache } from './cache/index.js';
-
-   // In main action:
-   await cache.init();
-
-   // Check cache first
-   let codebaseAnalysis = await cache.getCachedAnalysis(process.cwd());
-
-   if (codebaseAnalysis) {
-     log.verbose('Using cached codebase analysis');
-     spinner.stop(pc.green('✓') + ' Codebase analyzed (cached)');
-   } else {
-     spinner.start('Analyzing your codebase...');
-     const analyzer = new CodebaseAnalyzer(process.cwd());
-     codebaseAnalysis = await analyzer.analyze();
-     await cache.setCachedAnalysis(process.cwd(), codebaseAnalysis);
-     spinner.stop(pc.green('✓') + ' Codebase analyzed');
-   }
-   ```
-
-3. **Add clear cache command:**
-   ```typescript
-   program
-     .command('cache')
-     .description('Manage cache')
-     .option('--clear', 'Clear all cached data')
-     .action(async (options) => {
-       if (options.clear) {
-         await cache.init();
-         await cache.clearCache();
-         console.log(pc.green('✓') + ' Cache cleared');
-       }
-     });
-   ```
-
-**Files modified:**
-- [x] `src/cache/index.ts` - Created with CacheManager class
-- [x] `src/index.ts` - Integrated cache, added `superagents cache` command
-- [x] `tests/unit/cache/cache.test.ts` - Created comprehensive tests
-
-**Actual time:** ~1.5 hours
-
-**Test results:**
-- Codebase hash generation: consistent and changes on file modifications ✅
-- Analysis caching: cache hit/miss working correctly ✅
-- Cache invalidation: detects project changes ✅
-- Cache stats command: working ✅
-
----
-
-### 2.2 Response Cache ✅
-
-**Goal:** Cache AI-generated responses to avoid redundant API calls.
-
-**Strategy:**
-1. Hash: goal description + codebase hash + agent/skill name + model
-2. Store generated content with hash
-3. On cache hit, return cached content immediately
-
-**Implementation Steps:**
-
-1. **Extend** `src/cache/index.ts`:
-   ```typescript
-   interface GenerationCacheKey {
-     goalDescription: string;
-     codebaseHash: string;
-     itemType: 'agent' | 'skill' | 'claude-md';
-     itemName: string;
-     model: string;
-   }
-
-   export class CacheManager {
-     // ... existing code ...
-
-     getGenerationHash(key: GenerationCacheKey): string {
-       const str = JSON.stringify(key);
-       return crypto.createHash('md5').update(str).digest('hex');
-     }
-
-     async getCachedGeneration(key: GenerationCacheKey): Promise<string | null> {
-       const hash = this.getGenerationHash(key);
-       const cacheFile = path.join(this.cacheDir, `gen-${hash}.txt`);
-
-       if (await fs.pathExists(cacheFile)) {
-         try {
-           const entry: CacheEntry<string> = await fs.readJson(cacheFile + '.meta');
-
-           if (entry.version !== CACHE_VERSION) {
-             return null;
-           }
-
-           // Generation cache lasts 7 days
-           const age = Date.now() - new Date(entry.timestamp).getTime();
-           if (age > 7 * 24 * 60 * 60 * 1000) {
-             return null;
-           }
-
-           return await fs.readFile(cacheFile, 'utf-8');
-         } catch {
-           return null;
-         }
-       }
-
-       return null;
-     }
-
-     async setCachedGeneration(key: GenerationCacheKey, content: string): Promise<void> {
-       const hash = this.getGenerationHash(key);
-       const cacheFile = path.join(this.cacheDir, `gen-${hash}.txt`);
-
-       const entry: CacheEntry<null> = {
-         version: CACHE_VERSION,
-         hash,
-         timestamp: new Date().toISOString(),
-         data: null
-       };
-
-       await fs.writeFile(cacheFile, content, 'utf-8');
-       await fs.writeJson(cacheFile + '.meta', entry, { spaces: 2 });
-     }
-   }
-   ```
-
-2. **Update** `src/generator/index.ts`:
-   ```typescript
-   import { cache } from '../cache/index.js';
-
-   async generateAgent(context: GenerationContext, agentName: string): Promise<AgentOutput> {
-     const cacheKey = {
-       goalDescription: context.goal.description,
-       codebaseHash: await cache.getCodebaseHash(context.codebase.projectRoot),
-       itemType: 'agent' as const,
-       itemName: agentName,
-       model: selectModel({ userSelectedModel: context.selectedModel, generationType: 'agent' })
-     };
-
-     // Check cache
-     const cached = await cache.getCachedGeneration(cacheKey);
-     if (cached) {
-       log.verbose(`Using cached agent: ${agentName}`);
-       return {
-         filename: `${agentName}.md`,
-         content: cached,
-         agentName
-       };
-     }
-
-     // Generate and cache
-     const content = await this.callAPI(/* ... */);
-     await cache.setCachedGeneration(cacheKey, content);
-
-     return {
-       filename: `${agentName}.md`,
-       content,
-       agentName
-     };
-   }
-   ```
-
-**Files modified:**
-- [x] `src/cache/index.ts` - Added `getCachedGeneration()`, `setCachedGeneration()`, `getGenerationHash()`
-- [x] `src/generator/index.ts` - Integrated generation cache in `generateAgent()`, `generateSkill()`, `generateClaudeMdWithAI()`
-
-**Actual time:** ~1 hour
-
-**Test results:**
-- Generation cache key differentiation by model ✅
-- Generation cache key differentiation by item name ✅
-- Cache hit on same goal+codebase+model combination ✅
-- Cache duration: 7 days ✅
-
----
-
-### 2.3 Streaming Responses ✅
-
-**Goal:** Show AI-generated content in real-time for better perceived performance.
-
-**Implementation Steps:**
-
-1. **Update** `src/generator/index.ts`:
-   ```typescript
-   import Anthropic from '@anthropic-ai/sdk';
-
-   async generateWithStreaming(
-     prompt: string,
-     model: string,
-     onChunk: (text: string) => void
-   ): Promise<string> {
-     const anthropic = new Anthropic({ apiKey: this.apiKey });
-
-     let fullContent = '';
-
-     const stream = await anthropic.messages.stream({
-       model,
-       max_tokens: 4000,
-       messages: [{ role: 'user', content: prompt }]
-     });
-
-     for await (const event of stream) {
-       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-         const text = event.delta.text;
-         fullContent += text;
-         onChunk(text);
-       }
-     }
-
-     return fullContent;
-   }
-   ```
-
-2. **Create streaming progress display:**
-   ```typescript
-   // In verbose mode, show streaming content
-   if (context.verbose) {
-     const content = await this.generateWithStreaming(
-       prompt,
-       model,
-       (chunk) => process.stdout.write(pc.dim(chunk))
-     );
-     console.log(); // New line after streaming
-     return content;
-   } else {
-     // Non-streaming for normal mode
-     return await this.callAPI(prompt, model);
-   }
-   ```
-
-**Files modified:**
-- [x] `src/generator/index.ts` - Added `executeWithStreaming()` method, integrated in `executePrompt()` for verbose mode
-
-**Actual time:** ~30 minutes
-
-**Test results:**
-- Streaming mode activated in verbose mode ✅
-- Progress logging during streaming ✅
-- Full content returned after stream complete ✅
-
----
-
-## Phase 2 Summary
-
-| Feature | Status | Files Created/Modified | Key Functions |
-|---------|--------|------------------------|---------------|
-| 2.1 Codebase Cache | ✅ | `src/cache/index.ts` | `getCodebaseHash()`, `getCachedAnalysis()`, `setCachedAnalysis()` |
-| 2.2 Response Cache | ✅ | `src/cache/index.ts`, `src/generator/index.ts` | `getCachedGeneration()`, `setCachedGeneration()` |
-| 2.3 Streaming | ✅ | `src/generator/index.ts` | `executeWithStreaming()` |
-
-**Total Phase 2 time:** ~3 hours
-
-**New CLI Commands:**
-- `superagents cache --stats` - Show cache statistics
-- `superagents cache --clear` - Clear all cached data
-
-**Cache Location:** `~/.superagents/cache/`
-
----
-
-## Phase 3: Cost Reduction
-
-### 3.1 Prompt Compression
-
-**Goal:** Reduce token usage with more efficient prompts.
-
-**Implementation Steps:**
-
-1. **Create** `src/prompts/templates.ts`:
-   ```typescript
-   // Shorter, more efficient prompts
-
-   export const AGENT_PROMPT_TEMPLATE = `Generate a Claude Code agent.
-
-   PROJECT: {{goal}}
-   TYPE: {{category}}
-   FRAMEWORK: {{framework}}
-
-   AGENT: {{agentName}}
-
-   Output YAML frontmatter + markdown:
-   ---
-   name: {{agentName}}
-   description: [2 lines, include "Use when:"]
-   tools: Read, Edit, Write, Glob, Grep, Bash
-   model: sonnet
-   skills: [relevant skills]
-   ---
-
-   # {{agentName}}
-
-   [Role description, 1-2 sentences]
-
-   ## Context
-   [Project-specific context]
-
-   ## Patterns
-   [Key patterns with code examples]
-
-   ## Rules
-   [Numbered critical rules]
-
-   Be specific to THIS project. No generic content.`;
-
-   export function compressPrompt(template: string, vars: Record<string, string>): string {
-     let result = template;
-     for (const [key, value] of Object.entries(vars)) {
-       result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
-     }
-     // Remove extra whitespace
-     return result.replace(/\n{3,}/g, '\n\n').trim();
-   }
-   ```
-
-2. **Reduce context sent to API:**
-   ```typescript
-   // Instead of sending full file contents, send summaries
-   function summarizeFile(content: string): string {
-     const lines = content.split('\n');
-     const imports = lines.filter(l => l.startsWith('import ')).slice(0, 10);
-     const exports = lines.filter(l => l.includes('export ')).slice(0, 10);
-     const functions = lines.filter(l => l.match(/^(async )?(function|const) \w+/)).slice(0, 10);
-
-     return [
-       '// Imports:',
-       ...imports,
-       '// Exports:',
-       ...exports,
-       '// Functions:',
-       ...functions
-     ].join('\n');
-   }
-   ```
+**Implementation:**
+- Create `src/prompts/templates.ts` with shorter prompts
+- Replace verbose examples with summaries
+- Summarize files (imports + exports + functions) instead of full content
+- Remove extra whitespace and redundant explanations
 
 **Files to modify:**
-- [ ] `src/prompts/templates.ts` - Create new file
-- [ ] `src/generator/index.ts` - Use compressed prompts
-- [ ] `src/analyzer/codebase-analyzer.ts` - Summarize files instead of full content
+- [ ] `src/prompts/templates.ts` (new)
+- [ ] `src/generator/index.ts` (use compressed prompts)
+- [ ] `src/analyzer/codebase-analyzer.ts` (summarize files)
 
-**Estimated time:** 3-4 hours
+#### 3.2 Local Templates (~4-5h)
+**Goal:** Use local templates for common agents/skills, only call API for customization
 
----
-
-### 3.2 Local Templates
-
-**Goal:** Use local templates for common patterns, only call API for customization.
-
-**Implementation Steps:**
-
-1. **Create** `src/templates/` directory with base templates:
-   ```
-   src/templates/
-   ├── agents/
-   │   ├── frontend-engineer.md
-   │   ├── backend-engineer.md
-   │   ├── reviewer.md
-   │   └── debugger.md
-   ├── skills/
-   │   ├── typescript.md
-   │   ├── react.md
-   │   ├── nextjs.md
-   │   └── tailwind.md
-   └── hooks/
-       └── skill-loader.sh
-   ```
-
-2. **Create** `src/templates/loader.ts`:
-   ```typescript
-   import fs from 'fs-extra';
-   import path from 'path';
-   import { fileURLToPath } from 'url';
-
-   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-   const TEMPLATES_DIR = path.join(__dirname, '..', '..', 'templates');
-
-   export async function getTemplate(type: 'agent' | 'skill' | 'hook', name: string): Promise<string | null> {
-     const templatePath = path.join(TEMPLATES_DIR, `${type}s`, `${name}.md`);
-
-     if (await fs.pathExists(templatePath)) {
-       return await fs.readFile(templatePath, 'utf-8');
-     }
-
-     return null;
-   }
-
-   export function customizeTemplate(template: string, context: Record<string, string>): string {
-     let result = template;
-
-     for (const [key, value] of Object.entries(context)) {
-       result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-     }
-
-     return result;
-   }
-   ```
-
-3. **Update generator to use templates:**
-   ```typescript
-   async generateAgent(context: GenerationContext, agentName: string): Promise<AgentOutput> {
-     // Try to get local template first
-     const template = await getTemplate('agent', agentName);
-
-     if (template) {
-       // Customize template with project context (no API call!)
-       const customized = customizeTemplate(template, {
-         projectName: context.codebase.projectName,
-         framework: context.codebase.framework || 'unknown',
-         goal: context.goal.description
-       });
-
-       log.verbose(`Using local template for agent: ${agentName}`);
-
-       return {
-         filename: `${agentName}.md`,
-         content: customized,
-         agentName
-       };
-     }
-
-     // Fall back to API generation
-     log.verbose(`No template found, generating via API: ${agentName}`);
-     return await this.generateAgentViaAPI(context, agentName);
-   }
-   ```
+**Implementation:**
+- Create `src/templates/` with base agent/skill templates
+- Template variables: `{{projectName}}`, `{{framework}}`, `{{goal}}`
+- Fallback to API if no template exists
 
 **Files to modify:**
-- [ ] `src/templates/` - Create directory with templates
-- [ ] `src/templates/loader.ts` - Create template loader
-- [ ] `src/generator/index.ts` - Use templates when available
-
-**Estimated time:** 4-5 hours
+- [ ] `src/templates/agents/` (new directory with .md templates)
+- [ ] `src/templates/skills/` (new directory with .md templates)
+- [ ] `src/templates/loader.ts` (new)
+- [ ] `src/generator/index.ts` (check templates first)
 
 ---
 
-## Phase 4: New Features
+## Phase 4: New Features (Pending)
 
-### 4.1 --update Mode
+> **Target Version:** 1.3.0 | **Estimated Time:** 15-20 hours
 
-**Goal:** Update existing `.claude/` folder without full regeneration.
+### Features
 
-**Implementation Steps:**
+#### 4.1 --update Mode (~4-5h)
+**Goal:** Update existing `.claude/` folder incrementally
 
-1. **Add flag to CLI:**
-   ```typescript
-   program
-     .option('--update', 'Update existing .claude/ folder incrementally')
-   ```
-
-2. **Create** `src/updater/index.ts`:
-   ```typescript
-   import fs from 'fs-extra';
-   import path from 'path';
-   import pc from 'picocolors';
-   import * as p from '@clack/prompts';
-
-   interface UpdateOptions {
-     addAgents?: string[];
-     removeAgents?: string[];
-     addSkills?: string[];
-     removeSkills?: string[];
-     regenerateClaudeMd?: boolean;
-   }
-
-   export class ConfigUpdater {
-     private claudeDir: string;
-
-     constructor(projectRoot: string) {
-       this.claudeDir = path.join(projectRoot, '.claude');
-     }
-
-     async exists(): Promise<boolean> {
-       return fs.pathExists(this.claudeDir);
-     }
-
-     async getCurrentConfig(): Promise<{
-       agents: string[];
-       skills: string[];
-     }> {
-       const agentsDir = path.join(this.claudeDir, 'agents');
-       const skillsDir = path.join(this.claudeDir, 'skills');
-
-       const agents = (await fs.pathExists(agentsDir))
-         ? (await fs.readdir(agentsDir)).map(f => f.replace('.md', ''))
-         : [];
-
-       const skills = (await fs.pathExists(skillsDir))
-         ? (await fs.readdir(skillsDir)).map(f => f.replace('.md', ''))
-         : [];
-
-       return { agents, skills };
-     }
-
-     async promptForUpdates(current: { agents: string[]; skills: string[] }): Promise<UpdateOptions> {
-       const action = await p.select({
-         message: 'What would you like to update?',
-         options: [
-           { value: 'add', label: 'Add new agents/skills' },
-           { value: 'remove', label: 'Remove existing agents/skills' },
-           { value: 'regenerate', label: 'Regenerate CLAUDE.md' },
-           { value: 'all', label: 'Regenerate everything' }
-         ]
-       });
-
-       // ... implementation based on selection ...
-       return {};
-     }
-   }
-   ```
-
-3. **Update main CLI:**
-   ```typescript
-   if (options.update) {
-     const updater = new ConfigUpdater(process.cwd());
-
-     if (!(await updater.exists())) {
-       displayError('No .claude/ folder found. Run superagents without --update first.');
-       process.exit(1);
-     }
-
-     const current = await updater.getCurrentConfig();
-     console.log(pc.dim(`Current config: ${current.agents.length} agents, ${current.skills.length} skills`));
-
-     const updates = await updater.promptForUpdates(current);
-     // ... apply updates ...
-   }
-   ```
+**Implementation:**
+- Add `--update` flag to CLI
+- Create `src/updater/index.ts` with ConfigUpdater class
+- Allow adding/removing agents/skills
+- Regenerate specific files without full rebuild
 
 **Files to modify:**
-- [ ] `src/updater/index.ts` - Create new file
-- [ ] `src/index.ts` - Add --update flag and logic
+- [ ] `src/updater/index.ts` (new)
+- [ ] `src/index.ts` (add --update flag)
 
-**Estimated time:** 4-5 hours
+#### 4.2 Monorepo Support (~5-6h)
+**Goal:** Detect and handle monorepos with multiple packages
 
----
-
-### 4.2 Monorepo Support
-
-**Goal:** Detect and handle monorepos with multiple packages.
-
-**Implementation Steps:**
-
-1. **Update** `src/analyzer/codebase-analyzer.ts`:
-   ```typescript
-   interface MonorepoInfo {
-     isMonorepo: boolean;
-     rootPackage: string;
-     packages: PackageInfo[];
-     workspaceManager: 'npm' | 'yarn' | 'pnpm' | 'lerna' | null;
-   }
-
-   interface PackageInfo {
-     name: string;
-     path: string;
-     type: ProjectType;
-     dependencies: Dependency[];
-   }
-
-   async detectMonorepo(projectRoot: string): Promise<MonorepoInfo> {
-     // Check for workspace configurations
-     const pkg = await this.readPackageJson(projectRoot);
-
-     if (!pkg) {
-       return { isMonorepo: false, rootPackage: '', packages: [], workspaceManager: null };
-     }
-
-     // npm/yarn workspaces
-     if (pkg.workspaces) {
-       const workspaces = Array.isArray(pkg.workspaces)
-         ? pkg.workspaces
-         : pkg.workspaces.packages || [];
-
-       const packages = await this.scanWorkspaces(projectRoot, workspaces);
-
-       return {
-         isMonorepo: true,
-         rootPackage: pkg.name || 'root',
-         packages,
-         workspaceManager: await this.detectWorkspaceManager(projectRoot)
-       };
-     }
-
-     // pnpm workspaces
-     const pnpmWorkspace = path.join(projectRoot, 'pnpm-workspace.yaml');
-     if (await fs.pathExists(pnpmWorkspace)) {
-       // Parse pnpm-workspace.yaml
-       // ...
-     }
-
-     // Lerna
-     const lernaConfig = path.join(projectRoot, 'lerna.json');
-     if (await fs.pathExists(lernaConfig)) {
-       // Parse lerna.json
-       // ...
-     }
-
-     return { isMonorepo: false, rootPackage: '', packages: [], workspaceManager: null };
-   }
-
-   private async scanWorkspaces(root: string, patterns: string[]): Promise<PackageInfo[]> {
-     const packages: PackageInfo[] = [];
-
-     for (const pattern of patterns) {
-       const dirs = await glob(pattern, { cwd: root, onlyDirectories: true });
-
-       for (const dir of dirs) {
-         const pkgPath = path.join(root, dir, 'package.json');
-         if (await fs.pathExists(pkgPath)) {
-           const pkg = await fs.readJson(pkgPath);
-           packages.push({
-             name: pkg.name,
-             path: dir,
-             type: await this.detectProjectType(path.join(root, dir)),
-             dependencies: this.extractDependencies(pkg)
-           });
-         }
-       }
-     }
-
-     return packages;
-   }
-   ```
-
-2. **Update prompts for monorepo:**
-   ```typescript
-   if (codebaseAnalysis.monorepo?.isMonorepo) {
-     const selectedPackages = await p.multiselect({
-       message: 'Which packages should we configure?',
-       options: codebaseAnalysis.monorepo.packages.map(pkg => ({
-         value: pkg.path,
-         label: `${pkg.name} (${pkg.type})`,
-         hint: pkg.path
-       })),
-       initialValues: codebaseAnalysis.monorepo.packages.map(p => p.path)
-     });
-   }
-   ```
+**Implementation:**
+- Detect npm/yarn/pnpm/lerna workspaces
+- Scan individual packages
+- Allow per-package configuration
+- Multi-select package prompt
 
 **Files to modify:**
-- [ ] `src/analyzer/codebase-analyzer.ts` - Add monorepo detection
-- [ ] `src/types/codebase.ts` - Add MonorepoInfo type
-- [ ] `src/cli/prompts.ts` - Add package selection for monorepos
+- [ ] `src/analyzer/codebase-analyzer.ts` (add `detectMonorepo()`)
+- [ ] `src/types/codebase.ts` (add `MonorepoInfo` type)
+- [ ] `src/cli/prompts.ts` (add package selection)
 
-**Estimated time:** 5-6 hours
+#### 4.3 Custom Templates (~3-4h)
+**Goal:** Allow users to provide custom agent/skill templates
 
----
-
-### 4.3 Custom Templates
-
-**Goal:** Allow users to provide custom agent/skill templates.
-
-**Implementation Steps:**
-
-1. **Create** `src/templates/custom.ts`:
-   ```typescript
-   import fs from 'fs-extra';
-   import path from 'path';
-   import os from 'os';
-
-   const CUSTOM_TEMPLATES_DIR = path.join(os.homedir(), '.superagents', 'templates');
-
-   export async function initCustomTemplates(): Promise<void> {
-     await fs.ensureDir(path.join(CUSTOM_TEMPLATES_DIR, 'agents'));
-     await fs.ensureDir(path.join(CUSTOM_TEMPLATES_DIR, 'skills'));
-   }
-
-   export async function getCustomTemplate(type: 'agent' | 'skill', name: string): Promise<string | null> {
-     const templatePath = path.join(CUSTOM_TEMPLATES_DIR, `${type}s`, `${name}.md`);
-
-     if (await fs.pathExists(templatePath)) {
-       return await fs.readFile(templatePath, 'utf-8');
-     }
-
-     return null;
-   }
-
-   export async function saveCustomTemplate(type: 'agent' | 'skill', name: string, content: string): Promise<void> {
-     await initCustomTemplates();
-     const templatePath = path.join(CUSTOM_TEMPLATES_DIR, `${type}s`, `${name}.md`);
-     await fs.writeFile(templatePath, content, 'utf-8');
-   }
-
-   export async function listCustomTemplates(): Promise<{ agents: string[]; skills: string[] }> {
-     await initCustomTemplates();
-
-     const agents = await fs.readdir(path.join(CUSTOM_TEMPLATES_DIR, 'agents'));
-     const skills = await fs.readdir(path.join(CUSTOM_TEMPLATES_DIR, 'skills'));
-
-     return {
-       agents: agents.map(f => f.replace('.md', '')),
-       skills: skills.map(f => f.replace('.md', ''))
-     };
-   }
-   ```
-
-2. **Add CLI command:**
-   ```typescript
-   program
-     .command('templates')
-     .description('Manage custom templates')
-     .option('--list', 'List custom templates')
-     .option('--export <name>', 'Export a generated agent/skill as template')
-     .option('--import <file>', 'Import a template file')
-     .action(async (options) => {
-       // ... implementation ...
-     });
-   ```
+**Implementation:**
+- Templates in `~/.superagents/templates/`
+- Commands: `superagents templates --list`, `--export`, `--import`
+- Check custom templates before built-in
 
 **Files to modify:**
-- [ ] `src/templates/custom.ts` - Create new file
-- [ ] `src/index.ts` - Add templates command
-- [ ] `src/generator/index.ts` - Check custom templates first
+- [ ] `src/templates/custom.ts` (new)
+- [ ] `src/index.ts` (add templates command)
+- [ ] `src/generator/index.ts` (check custom templates)
 
-**Estimated time:** 3-4 hours
+#### 4.4 Config Export/Import (~3-4h)
+**Goal:** Share configurations with team via zip files
 
----
-
-### 4.4 Config Export/Import
-
-**Goal:** Export/import configurations for sharing with team.
-
-**Implementation Steps:**
-
-1. **Create** `src/config/export-import.ts`:
-   ```typescript
-   import fs from 'fs-extra';
-   import path from 'path';
-   import archiver from 'archiver';
-   import unzipper from 'unzipper';
-
-   interface ExportedConfig {
-     version: string;
-     exportedAt: string;
-     goal: string;
-     category: string;
-     agents: string[];
-     skills: string[];
-   }
-
-   export async function exportConfig(claudeDir: string, outputPath: string): Promise<void> {
-     const output = fs.createWriteStream(outputPath);
-     const archive = archiver('zip', { zlib: { level: 9 } });
-
-     archive.pipe(output);
-
-     // Add all files from .claude/
-     archive.directory(claudeDir, '.claude');
-
-     // Add metadata
-     const metadata: ExportedConfig = {
-       version: '1.0.0',
-       exportedAt: new Date().toISOString(),
-       goal: 'Exported configuration',
-       category: 'custom',
-       agents: (await fs.readdir(path.join(claudeDir, 'agents'))).map(f => f.replace('.md', '')),
-       skills: (await fs.readdir(path.join(claudeDir, 'skills'))).map(f => f.replace('.md', ''))
-     };
-
-     archive.append(JSON.stringify(metadata, null, 2), { name: 'superagents-meta.json' });
-
-     await archive.finalize();
-   }
-
-   export async function importConfig(zipPath: string, targetDir: string): Promise<void> {
-     const claudeDir = path.join(targetDir, '.claude');
-
-     // Check if .claude exists
-     if (await fs.pathExists(claudeDir)) {
-       throw new Error('.claude/ directory already exists. Use --force to overwrite.');
-     }
-
-     // Extract zip
-     await fs.createReadStream(zipPath)
-       .pipe(unzipper.Extract({ path: targetDir }))
-       .promise();
-   }
-   ```
-
-2. **Add CLI commands:**
-   ```typescript
-   program
-     .command('export')
-     .description('Export .claude/ configuration as a zip file')
-     .argument('[output]', 'Output file path', 'superagents-config.zip')
-     .action(async (output) => {
-       const claudeDir = path.join(process.cwd(), '.claude');
-
-       if (!(await fs.pathExists(claudeDir))) {
-         displayError('No .claude/ folder found');
-         process.exit(1);
-       }
-
-       await exportConfig(claudeDir, output);
-       console.log(pc.green('✓') + ` Exported to ${output}`);
-     });
-
-   program
-     .command('import')
-     .description('Import a .claude/ configuration from zip or URL')
-     .argument('<source>', 'Zip file path or URL')
-     .option('--force', 'Overwrite existing .claude/ folder')
-     .action(async (source, options) => {
-       // ... implementation ...
-     });
-   ```
+**Implementation:**
+- Export: `superagents export [output.zip]`
+- Import: `superagents import <source.zip>`
+- Include metadata (version, goal, agents, skills)
 
 **Files to modify:**
-- [ ] `src/config/export-import.ts` - Create new file
-- [ ] `src/index.ts` - Add export/import commands
-- [ ] `package.json` - Add archiver, unzipper dependencies
-
-**Estimated time:** 3-4 hours
+- [ ] `src/config/export-import.ts` (new)
+- [ ] `src/index.ts` (add export/import commands)
+- [ ] `package.json` (add archiver, unzipper deps)
 
 ---
 
-## Phase 5: Technical Improvements
+## Phase 5: Technical Improvements (Pending)
 
-### 5.1 Test Coverage
+> **Target Version:** 1.4.0 | **Estimated Time:** 10-14 hours
 
-**Goal:** Add comprehensive test coverage.
+### Features
+
+#### 5.1 Test Coverage (~6-8h)
+**Goal:** Add comprehensive unit + integration tests
 
 **Test Structure:**
 ```
 tests/
-├── unit/
+├── unit/                    # 60% coverage
 │   ├── analyzer/
-│   │   ├── codebase-analyzer.test.ts
-│   │   └── detectors.test.ts
 │   ├── generator/
-│   │   ├── agents.test.ts
-│   │   └── skills.test.ts
 │   ├── cache/
-│   │   └── cache.test.ts
 │   └── utils/
-│       ├── model-selector.test.ts
-│       └── logger.test.ts
-├── integration/
+├── integration/             # 30% coverage
 │   ├── cli.test.ts
 │   └── full-workflow.test.ts
-└── fixtures/
+└── fixtures/                # Test projects
     ├── nextjs-project/
     ├── react-project/
     └── monorepo-project/
 ```
 
-**Implementation Steps:**
-
-1. **Create test fixtures:**
-   ```bash
-   mkdir -p tests/fixtures/nextjs-project
-   # Create minimal package.json, tsconfig.json, etc.
-   ```
-
-2. **Create** `tests/unit/analyzer/codebase-analyzer.test.ts`:
-   ```typescript
-   import { describe, it, expect, beforeAll } from 'vitest';
-   import { CodebaseAnalyzer } from '../../../src/analyzer/codebase-analyzer.js';
-   import path from 'path';
-
-   describe('CodebaseAnalyzer', () => {
-     const fixturesDir = path.join(__dirname, '../../fixtures');
-
-     describe('detectProjectType', () => {
-       it('should detect Next.js project', async () => {
-         const analyzer = new CodebaseAnalyzer(path.join(fixturesDir, 'nextjs-project'));
-         const result = await analyzer.analyze();
-
-         expect(result.projectType).toBe('nextjs');
-         expect(result.framework).toBe('Next.js');
-       });
-
-       it('should detect React project', async () => {
-         const analyzer = new CodebaseAnalyzer(path.join(fixturesDir, 'react-project'));
-         const result = await analyzer.analyze();
-
-         expect(result.projectType).toBe('react');
-       });
-     });
-
-     describe('analyzeDependencies', () => {
-       it('should categorize dependencies correctly', async () => {
-         const analyzer = new CodebaseAnalyzer(path.join(fixturesDir, 'nextjs-project'));
-         const result = await analyzer.analyze();
-
-         const tailwind = result.dependencies.find(d => d.name === 'tailwindcss');
-         expect(tailwind?.category).toBe('styling');
-       });
-     });
-   });
-   ```
-
-3. **Create** `tests/unit/utils/model-selector.test.ts`:
-   ```typescript
-   import { describe, it, expect } from 'vitest';
-   import { selectModel, getSkillComplexity } from '../../../src/utils/model-selector.js';
-
-   describe('selectModel', () => {
-     it('should use Haiku for hooks', () => {
-       const model = selectModel({
-         userSelectedModel: 'sonnet',
-         generationType: 'hook'
-       });
-
-       expect(model).toContain('haiku');
-     });
-
-     it('should use Sonnet for agents', () => {
-       const model = selectModel({
-         userSelectedModel: 'sonnet',
-         generationType: 'agent'
-       });
-
-       expect(model).toContain('sonnet');
-     });
-
-     it('should respect user selection for claude-md', () => {
-       const model = selectModel({
-         userSelectedModel: 'opus',
-         generationType: 'claude-md'
-       });
-
-       expect(model).toContain('opus');
-     });
-   });
-
-   describe('getSkillComplexity', () => {
-     it('should identify simple skills', () => {
-       expect(getSkillComplexity('markdown')).toBe('simple');
-       expect(getSkillComplexity('git')).toBe('simple');
-     });
-
-     it('should identify complex skills', () => {
-       expect(getSkillComplexity('nextjs')).toBe('complex');
-       expect(getSkillComplexity('kubernetes')).toBe('complex');
-     });
-   });
-   ```
-
-4. **Update** `package.json`:
-   ```json
-   {
-     "scripts": {
-       "test": "vitest run",
-       "test:watch": "vitest",
-       "test:coverage": "vitest run --coverage"
-     }
-   }
-   ```
+**Coverage Targets:**
+- utils/: 90%
+- cache/: 85%
+- analyzer/: 80%
+- generator/: 75%
+- cli/: 70%
 
 **Files to create:**
-- [ ] `tests/fixtures/` - Test fixtures
-- [ ] `tests/unit/` - Unit tests
-- [ ] `tests/integration/` - Integration tests
-- [ ] `vitest.config.ts` - Vitest configuration
+- [ ] `tests/fixtures/` (test projects)
+- [ ] `tests/unit/` (unit tests)
+- [ ] `tests/integration/` (integration tests)
+- [ ] `vitest.config.ts`
 
-**Estimated time:** 6-8 hours
+#### 5.2 Error Recovery (~2-3h)
+**Goal:** Better error handling with retry logic
 
----
-
-### 5.2 Error Recovery
-
-**Goal:** Better error handling with retry logic for API failures.
-
-**Implementation Steps:**
-
-1. **Create** `src/utils/retry.ts`:
-   ```typescript
-   import pc from 'picocolors';
-   import { log } from './logger.js';
-
-   interface RetryOptions {
-     maxAttempts?: number;
-     delayMs?: number;
-     backoffMultiplier?: number;
-     onRetry?: (attempt: number, error: Error) => void;
-   }
-
-   export async function withRetry<T>(
-     fn: () => Promise<T>,
-     options: RetryOptions = {}
-   ): Promise<T> {
-     const {
-       maxAttempts = 3,
-       delayMs = 1000,
-       backoffMultiplier = 2,
-       onRetry
-     } = options;
-
-     let lastError: Error;
-     let currentDelay = delayMs;
-
-     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-       try {
-         return await fn();
-       } catch (error) {
-         lastError = error as Error;
-
-         if (attempt < maxAttempts) {
-           onRetry?.(attempt, lastError);
-           log.verbose(`Retry ${attempt}/${maxAttempts} after ${currentDelay}ms...`);
-
-           await new Promise(resolve => setTimeout(resolve, currentDelay));
-           currentDelay *= backoffMultiplier;
-         }
-       }
-     }
-
-     throw lastError!;
-   }
-
-   // Specific retry for API calls
-   export async function withAPIRetry<T>(fn: () => Promise<T>): Promise<T> {
-     return withRetry(fn, {
-       maxAttempts: 3,
-       delayMs: 2000,
-       backoffMultiplier: 2,
-       onRetry: (attempt, error) => {
-         log.warn(`API call failed (attempt ${attempt}): ${error.message}`);
-       }
-     });
-   }
-   ```
-
-2. **Update generator to use retry:**
-   ```typescript
-   import { withAPIRetry } from '../utils/retry.js';
-
-   async callAPI(prompt: string, model: string): Promise<string> {
-     return withAPIRetry(async () => {
-       const response = await this.anthropic.messages.create({
-         model,
-         max_tokens: 4000,
-         messages: [{ role: 'user', content: prompt }]
-       });
-
-       if (response.content[0].type !== 'text') {
-         throw new Error('Unexpected response type');
-       }
-
-       return response.content[0].text;
-     });
-   }
-   ```
+**Implementation:**
+- Create `src/utils/retry.ts` with exponential backoff
+- Wrap API calls in `withAPIRetry()` (3 attempts, 2s delay, 2x multiplier)
+- Log retry attempts in verbose mode
 
 **Files to modify:**
-- [ ] `src/utils/retry.ts` - Create new file
-- [ ] `src/generator/index.ts` - Use retry wrapper
+- [ ] `src/utils/retry.ts` (new)
+- [ ] `src/generator/index.ts` (use retry wrapper)
 
-**Estimated time:** 2-3 hours
+#### 5.3 Offline Mode (~2-3h)
+**Goal:** Work offline using cached/template-based generation
 
----
-
-### 5.3 Offline Mode
-
-**Goal:** Work offline using cached/template-based generation.
-
-**Implementation Steps:**
-
-1. **Add offline detection:**
-   ```typescript
-   import dns from 'dns';
-
-   export async function isOnline(): Promise<boolean> {
-     return new Promise((resolve) => {
-       dns.lookup('api.anthropic.com', (err) => {
-         resolve(!err);
-       });
-     });
-   }
-   ```
-
-2. **Update main flow:**
-   ```typescript
-   const online = await isOnline();
-
-   if (!online) {
-     log.warn('No internet connection detected. Running in offline mode.');
-     log.info('Will use cached results and local templates only.');
-
-     // Skip API-dependent steps
-     // Use only cached analysis and templates
-   }
-   ```
+**Implementation:**
+- Detect internet connection
+- Show warning if offline
+- Use only cached analysis and local templates
+- Skip API-dependent steps
 
 **Files to modify:**
-- [ ] `src/utils/network.ts` - Create new file
-- [ ] `src/index.ts` - Add offline mode logic
-- [ ] `src/generator/index.ts` - Handle offline mode
-
-**Estimated time:** 2-3 hours
+- [ ] `src/utils/network.ts` (new)
+- [ ] `src/index.ts` (offline mode logic)
+- [ ] `src/generator/index.ts` (handle offline)
 
 ---
 
-## Phase 6: Advanced Features
+## Phase 6: Advanced Features (Pending)
 
-### 6.1 VS Code Extension
+> **Target Version:** 2.0.0 | **Estimated Time:** 35-50 hours
 
-**Goal:** GUI for SuperAgents directly in VS Code.
+### Features
 
-**Structure:**
+#### 6.1 VS Code Extension (~20-30h)
+**Goal:** GUI for SuperAgents directly in VS Code
+
+**Scope:** Separate project with webview UI
+
+**Files:**
 ```
 superagents-vscode/
 ├── package.json
@@ -1871,100 +351,51 @@ superagents-vscode/
 │   └── utils/
 │       └── superagents.ts
 └── media/
-    └── icons/
 ```
 
-This is a separate project - see detailed plan in Phase 6.
-
-**Estimated time:** 20-30 hours (separate project)
-
----
-
-### 6.2 Plugin System
-
-**Goal:** Allow custom analyzers and generators via plugins.
+#### 6.2 Plugin System (~15-20h)
+**Goal:** Allow custom analyzers and generators
 
 **Plugin Interface:**
 ```typescript
 interface SuperAgentsPlugin {
   name: string;
   version: string;
-
-  // Optional hooks
   onAnalyze?: (codebase: CodebaseAnalysis) => Promise<CodebaseAnalysis>;
   onRecommend?: (recommendations: Recommendations) => Promise<Recommendations>;
   onGenerate?: (context: GenerationContext) => Promise<GeneratedOutputs>;
-
-  // Custom analyzers
   analyzers?: Analyzer[];
-
-  // Custom generators
   generators?: Generator[];
 }
 ```
-
-**Estimated time:** 15-20 hours
 
 ---
 
 ## Testing Strategy
 
 ### Test Pyramid
+- **Unit Tests (60%):** Model selector, cache, logger, templates
+- **Integration Tests (30%):** Analyzer with fixtures, generator with mocked API, cache persistence
+- **E2E Tests (10%):** Full workflow, export/import, update mode
 
+### Test Commands
+```bash
+npm test                # Run all tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
 ```
-           /\
-          /  \
-         / E2E \        (10%)
-        /______\
-       /        \
-      / Integration \   (30%)
-     /______________\
-    /                \
-   /     Unit Tests   \ (60%)
-  /____________________\
-```
-
-### Test Categories
-
-1. **Unit Tests** (60%)
-   - Model selector logic
-   - Cache key generation
-   - Template compilation
-   - Prompt compression
-   - Logger functions
-
-2. **Integration Tests** (30%)
-   - Codebase analyzer with real fixtures
-   - Generator with mocked API
-   - Cache persistence
-   - CLI flag parsing
-
-3. **E2E Tests** (10%)
-   - Full workflow with test project
-   - Export/import cycle
-   - Update mode
-
-### Coverage Targets
-
-| Module | Target |
-|--------|--------|
-| utils/ | 90% |
-| cache/ | 85% |
-| analyzer/ | 80% |
-| generator/ | 75% |
-| cli/ | 70% |
 
 ---
 
 ## Rollout Plan
 
-### Version 1.1 (Phase 1) ✅ COMPLETED
+### Version 1.1 ✅ (Phase 1)
 - [x] Parallel generation
 - [x] Tiered model selection
 - [x] --dry-run flag
 - [x] --verbose flag
 
-### Version 1.2 (Phase 2) ✅ COMPLETED
+### Version 1.2 ✅ (Phase 2)
 - [x] Codebase cache
 - [x] Response cache
 - [x] Streaming responses
@@ -1974,66 +405,128 @@ interface SuperAgentsPlugin {
 - [ ] Local templates
 - [ ] --update mode
 - [ ] Monorepo support
-
-### Version 1.4 (Phase 5)
 - [ ] Custom templates
 - [ ] Export/import
-- [ ] Test coverage
+
+### Version 1.4 (Phase 5)
+- [ ] Test coverage (60%+ unit, 30%+ integration)
 - [ ] Error recovery
+- [ ] Offline mode
 
 ### Version 2.0 (Phase 6)
 - [ ] VS Code extension
 - [ ] Plugin system
-- [ ] Web interface
 
 ---
 
-## Checklist Summary
+## Implementation Checklist
 
-### Phase 1: Quick Wins ✅ COMPLETED
-- [x] 1.1 Install p-limit, create concurrency.ts
-- [x] 1.1 Update generator for parallel generation
-- [x] 1.2 Create model-selector.ts
-- [x] 1.2 Update generator to use tiered models
-- [x] 1.3 Create dry-run.ts
-- [x] 1.3 Add --dry-run flag to CLI
-- [x] 1.4 Create logger.ts
-- [x] 1.4 Add --verbose flag to CLI
+### Phase 1 ✅ COMPLETED
+- [x] Install p-limit, create concurrency.ts
+- [x] Update generator for parallel generation
+- [x] Create model-selector.ts with tiered selection
+- [x] Create dry-run.ts with cost estimation
+- [x] Create logger.ts with verbose mode
 
-### Phase 2: Performance ✅ COMPLETED
-- [x] 2.1 Create cache/index.ts
-- [x] 2.1 Implement codebase caching
-- [x] 2.2 Add response caching
-- [x] 2.3 Add streaming support
+### Phase 2 ✅ COMPLETED
+- [x] Create cache/index.ts with CacheManager
+- [x] Implement codebase caching (24h TTL)
+- [x] Implement response caching (7d TTL)
+- [x] Add streaming support for verbose mode
 
-### Phase 3: Cost Reduction
-- [ ] 3.1 Create prompts/templates.ts
-- [ ] 3.1 Implement prompt compression
-- [ ] 3.2 Create templates directory
-- [ ] 3.2 Implement template loader
+### Phase 3 (Next Up)
+- [ ] Create prompts/templates.ts
+- [ ] Implement prompt compression
+- [ ] Create templates directory with base agents/skills
+- [ ] Implement template loader
 
-### Phase 4: New Features
-- [ ] 4.1 Create updater/index.ts
-- [ ] 4.1 Implement --update mode
-- [ ] 4.2 Add monorepo detection
-- [ ] 4.3 Implement custom templates
-- [ ] 4.4 Implement export/import
+### Phase 4
+- [ ] Create updater/index.ts
+- [ ] Implement --update mode
+- [ ] Add monorepo detection
+- [ ] Implement custom templates
+- [ ] Implement export/import
 
-### Phase 5: Technical
-- [ ] 5.1 Create test fixtures
-- [ ] 5.1 Write unit tests
-- [ ] 5.1 Write integration tests
-- [ ] 5.2 Create retry.ts
-- [ ] 5.3 Implement offline mode
+### Phase 5
+- [ ] Create test fixtures (nextjs, react, monorepo)
+- [ ] Write unit tests (utils, cache, analyzer)
+- [ ] Write integration tests (CLI, full workflow)
+- [ ] Create retry.ts with exponential backoff
+- [ ] Implement offline mode
 
-### Phase 6: Advanced
-- [ ] 6.1 VS Code extension (separate project)
-- [ ] 6.2 Plugin system
+### Phase 6
+- [ ] Design VS Code extension architecture
+- [ ] Implement plugin system interface
+- [ ] Create plugin loader and registry
 
 ---
 
-_Document Version: 1.2_
+## Dependency Graph
+
+```
+Phase 1 (Quick Wins)
+    ├── 1.1 Parallel Generation
+    ├── 1.2 Tiered Model Selection
+    ├── 1.3 --dry-run Flag
+    └── 1.4 --verbose Flag
+            │
+            ▼
+Phase 2 (Performance)
+    ├── 2.1 Codebase Cache (needs 1.4 for logging)
+    ├── 2.2 Response Cache (needs 2.1 for hash logic)
+    └── 2.3 Streaming (independent)
+            │
+            ▼
+Phase 3 (Cost Reduction)
+    ├── 3.1 Prompt Compression (independent)
+    └── 3.2 Local Templates (independent)
+            │
+            ▼
+Phase 4 (New Features)
+    ├── 4.1 --update (needs 2.1, 2.2)
+    ├── 4.2 Monorepo (needs 2.1)
+    ├── 4.3 Custom Templates (needs 3.2)
+    └── 4.4 Export/Import (independent)
+            │
+            ▼
+Phase 5 (Technical)
+    ├── 5.1 Test Coverage (can start anytime)
+    ├── 5.2 Error Recovery (independent)
+    └── 5.3 Offline Mode (needs 3.2, 2.2)
+            │
+            ▼
+Phase 6 (Advanced)
+    ├── 6.1 VS Code Extension (needs 4.4)
+    └── 6.2 Plugin System (needs all)
+```
+
+---
+
+## Priority Matrix
+
+```
+                    HIGH IMPACT
+                        │
+     ┌──────────────────┼──────────────────┐
+     │                  │                  │
+     │  ✅ Phase 1      │  ✅ Phase 2      │
+     │  Quick Wins      │  Performance     │
+     │                  │                  │
+LOW  │                  │                  │  HIGH
+EFFORT ─────────────────┼───────────────────── EFFORT
+     │                  │                  │
+     │  Phase 3         │  Phase 6         │
+     │  Cost Reduction  │  Advanced        │
+     │                  │                  │
+     └──────────────────┼──────────────────┘
+                        │
+                    LOW IMPACT
+```
+
+---
+
+_Document Version: 2.0 (Optimized)_
 _Created: 2026-01-27_
-_Last Updated: 2026-01-27_
-_Total Estimated Time: 80-100 hours_
-_Time Spent: ~8 hours (Phase 1: ~5h, Phase 2: ~3h)_
+_Last Updated: 2026-01-28_
+_Total Estimated Time Remaining: ~70-90 hours_
+_Time Spent: ~8 hours (Phases 1-2 complete)_

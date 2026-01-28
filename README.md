@@ -14,7 +14,7 @@ SuperAgents is an intelligent CLI tool that generates highly customized Claude C
 - 🔒 **Privacy-First** - Local processing, smart file sampling
 - ⚡ **Fast & Efficient** - Parallel generation, smart caching, tiered models
 - 💾 **Smart Caching** - Caches analysis and responses for faster subsequent runs
-- 🔄 **Streaming Output** - Real-time generation feedback in verbose mode
+- ✅ **Input Validation** - Clear error messages prevent runtime failures
 
 ## 🚀 Installation
 
@@ -56,7 +56,7 @@ superagents [options]
 
 Options:
   --dry-run     Preview what would be generated without making API calls
-  -v, --verbose Show detailed output with streaming responses
+  -v, --verbose Show detailed output and debug information
   --version     Show version number
   --help        Show help
 
@@ -75,7 +75,7 @@ superagents
 # Preview without API calls (see cost estimate)
 superagents --dry-run
 
-# Verbose mode with streaming output
+# Verbose mode with debug information
 superagents --verbose
 
 # Check cache status
@@ -230,10 +230,10 @@ SuperAgents is optimized for speed and cost efficiency:
 | Feature | Benefit |
 |---------|---------|
 | **Parallel Generation** | 3x faster with concurrent API calls |
-| **Tiered Models** | Uses Haiku for simple tasks, Sonnet for complex |
+| **Tiered Models** | Uses Haiku for simple tasks (~80% cost savings), Sonnet for complex |
 | **Codebase Caching** | Skip re-analysis on unchanged projects (24h cache) |
 | **Response Caching** | Reuse generated content for same goal/codebase (7-day cache) |
-| **Streaming** | Real-time feedback in verbose mode |
+| **Input Validation** | Fail fast with clear error messages |
 | **Dry-Run Mode** | Preview & estimate costs before generation |
 
 Cache location: `~/.superagents/cache/`

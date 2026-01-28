@@ -11,6 +11,9 @@ const CACHE_DIR = path.join(os.homedir(), '.superagents', 'cache');
 const CACHE_VERSION = '1'; // Increment when cache format changes
 export class CacheManager {
     cacheDir;
+    // TTL constants - centralized for easy modification
+    CODEBASE_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+    GENERATION_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
     constructor(customCacheDir) {
         this.cacheDir = customCacheDir || CACHE_DIR;
     }
@@ -32,6 +35,11 @@ export class CacheManager {
     // ============================================================
     /**
      * Generate a hash representing the current state of a codebase
+     *
+     * Hash strategy: Lock files (package.json, tsconfig.json) + directory structure.
+     * We hash structure (filenames) not content to keep hash stable across minor edits.
+     * This avoids cache invalidation on trivial changes like adding a comment.
+     *
      * Based on key configuration files and directory structure
      */
     async getCodebaseHash(projectRoot) {
@@ -104,6 +112,13 @@ export class CacheManager {
      * Get cached codebase analysis if available and valid
      */
     async getCachedAnalysis(projectRoot) {
+        // Validate input to prevent cryptic errors
+        if (!projectRoot || projectRoot.trim() === '') {
+            throw new Error('projectRoot cannot be empty');
+        }
+        if (!path.isAbsolute(projectRoot)) {
+            throw new Error(`projectRoot must be absolute path, got: ${projectRoot}`);
+        }
         const hash = await this.getCodebaseHash(projectRoot);
         const cacheFile = path.join(this.cacheDir, `analysis-${hash}.json`);
         if (await fs.pathExists(cacheFile)) {
@@ -116,8 +131,7 @@ export class CacheManager {
                 }
                 // Check if cache is too old (24 hours)
                 const age = Date.now() - new Date(entry.timestamp).getTime();
-                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-                if (age > maxAge) {
+                if (age > this.CODEBASE_CACHE_TTL) {
                     log.debug('Cache expired (>24 hours), invalidating');
                     return null;
                 }
@@ -174,8 +188,7 @@ export class CacheManager {
                 }
                 // Generation cache lasts 7 days
                 const age = Date.now() - new Date(entry.timestamp).getTime();
-                const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-                if (age > maxAge) {
+                if (age > this.GENERATION_CACHE_TTL) {
                     log.debug('Generation cache expired (>7 days)');
                     return null;
                 }

@@ -34,6 +34,12 @@ interface ModelSelectionOptions {
 }
 /**
  * Select the appropriate model based on task type and complexity
+ *
+ * Tiering strategy:
+ * - Haiku: Simple tasks (hooks, basic skills) - 80% cost reduction vs Sonnet
+ * - Sonnet: Complex tasks (agents, advanced skills) - baseline
+ * - Opus: Only when user explicitly selects it for CLAUDE.md
+ * Never exceed user's selected tier to respect budget constraints.
  */
 export declare function selectModel(options: ModelSelectionOptions): string;
 /**
@@ -44,10 +50,6 @@ export declare function getModelTier(modelId: string): ModelTier;
  * Determine skill complexity based on name
  */
 export declare function getSkillComplexity(skillName: string): 'simple' | 'medium' | 'complex';
-/**
- * Estimate token cost for a generation
- */
-export declare function estimateTokenCost(tier: ModelTier, inputTokens: number, outputTokens: number): number;
 /**
  * Get a human-readable model name
  */

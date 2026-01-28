@@ -10,10 +10,6 @@ export function setVerbose(enabled: boolean): void {
   verboseMode = enabled;
 }
 
-export function isVerbose(): boolean {
-  return verboseMode;
-}
-
 export const log = {
   info: (message: string) => {
     console.log(pc.blue('ℹ') + ' ' + message);

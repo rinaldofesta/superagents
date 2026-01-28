@@ -3,11 +3,11 @@
  */
 import pLimit from 'p-limit';
 // Limit concurrent API calls to avoid rate limiting
-export const API_CONCURRENCY = 3;
+const API_CONCURRENCY = 3;
 /**
- * Create a new rate limiter
+ * Create a new rate limiter (internal helper)
  */
-export const createLimiter = () => pLimit(API_CONCURRENCY);
+const createLimiter = () => pLimit(API_CONCURRENCY);
 /**
  * Execute tasks in parallel with concurrency limit and progress tracking
  */
