@@ -296,7 +296,7 @@ Comprehensive refactoring to align codebase with new coding principles from CLAU
 
 2. If Claude Code → existing flow (unchanged)
    - Authenticate with Claude Plan or API Key
-   - Generate .claude/ folder
+   - Generate CLAUDE.md in root folder + .claude/ folder for settings/agents/skills
 
 3. If Cursor → new flow
    - Skip Claude authentication (not needed)
