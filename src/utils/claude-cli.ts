@@ -6,20 +6,86 @@
  * a separate API key.
  */
 
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
 // Timeout for CLI operations (3 minutes for long generations)
 const CLI_TIMEOUT_MS = 180000;
+
+/**
+ * Clean Claude CLI response by removing XML-like tags and preamble text
+ * This handles cases where Claude CLI outputs thinking blocks or tool syntax
+ */
+function cleanClaudeResponse(response: string): string {
+  let cleaned = response;
+
+  // Split by code blocks to preserve them
+  const codeBlockRegex = /```[\s\S]*?```/g;
+  const codeBlocks: string[] = [];
+  let codeBlockIndex = 0;
+
+  // Store code blocks temporarily
+  cleaned = cleaned.replace(codeBlockRegex, (match) => {
+    codeBlocks.push(match);
+    return `__CODE_BLOCK_${codeBlockIndex++}__`;
+  });
+
+  // Remove thinking blocks (various formats)
+  cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "");
+  cleaned = cleaned.replace(/<thinking[\s\S]*?\/>/gi, "");
+
+  // Remove function_calls blocks
+  cleaned = cleaned.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, "");
+
+  // Remove invoke blocks (both self-closing and with content)
+  cleaned = cleaned.replace(/<invoke[^>]*>[\s\S]*?<\/invoke>/gi, "");
+  cleaned = cleaned.replace(/<invoke[^>]*\/>/gi, "");
+
+  // Remove parameter blocks
+  cleaned = cleaned.replace(/<parameter[^>]*>[\s\S]*?<\/parameter>/gi, "");
+
+  // Remove other common internal tags
+  cleaned = cleaned.replace(/<\/?function_calls>/gi, "");
+  cleaned = cleaned.replace(/<\/?invoke>/gi, "");
+  cleaned = cleaned.replace(/<\/?parameter>/gi, "");
+  cleaned = cleaned.replace(/<\/?thinking>/gi, "");
+
+  // Remove common preamble phrases that Claude might add
+  // These match patterns like "I'll read... before generating" or "Let me read... to understand"
+  const preamblePatterns = [
+    /I'll read the key source files[\s\S]*?before generating/i,
+    /Let me read these files[\s\S]*?to understand/i,
+    /Let me get more context[\s\S]*?on the project/i,
+    /Now I have a good understanding[\s\S]*?Let me create/i,
+    /Now I'll create[\s\S]*?file:/i,
+  ];
+
+  for (const pattern of preamblePatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  // Restore code blocks
+  codeBlocks.forEach((block, index) => {
+    cleaned = cleaned.replace(`__CODE_BLOCK_${index}__`, block);
+  });
+
+  // Remove multiple consecutive blank lines (more than 2)
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
+  // Trim whitespace
+  cleaned = cleaned.trim();
+
+  return cleaned;
+}
 
 /**
  * Check if Claude CLI is installed and authenticated
  */
 export async function checkClaudeCLI(): Promise<boolean> {
   try {
-    const version = await executeCommand(['--version'], undefined, 10000);
+    const version = await executeCommand(["--version"], undefined, 10000);
     // Check for "Claude" (case-insensitive) in version output
     // Example output: "2.1.20 (Claude Code)"
-    return version.toLowerCase().includes('claude');
+    return version.toLowerCase().includes("claude");
   } catch {
     return false;
   }
@@ -30,14 +96,14 @@ export async function checkClaudeCLI(): Promise<boolean> {
  *
  * @param prompt The prompt to send to Claude
  * @param model The model to use ('opus' or 'sonnet')
- * @returns Claude's response text
+ * @returns Claude's response text (cleaned of internal thinking/tool syntax)
  */
 export async function executeWithClaudeCLI(
   prompt: string,
-  model: 'opus' | 'sonnet' = 'sonnet'
+  model: "opus" | "sonnet" = "sonnet",
 ): Promise<string> {
   // Use model aliases, not full model IDs
-  const modelArg = model === 'opus' ? 'opus' : 'sonnet';
+  const modelArg = model === "opus" ? "opus" : "sonnet";
 
   try {
     // Use stdin for prompt (handles long prompts better than args)
@@ -46,21 +112,26 @@ export async function executeWithClaudeCLI(
     // --setting-sources user: only use user settings, not project/.claude
     const result = await executeCommand(
       [
-        '--print',
-        '--model', modelArg,
-        '--no-session-persistence',
-        '--setting-sources', 'user',
-        '--tools', ''  // Disable all tools - just return text
+        "--print",
+        "--model",
+        modelArg,
+        "--no-session-persistence",
+        "--setting-sources",
+        "user",
+        "--tools",
+        "", // Disable all tools - just return text
       ],
       prompt,
-      CLI_TIMEOUT_MS
+      CLI_TIMEOUT_MS,
     );
-    return result.trim();
+
+    // Clean the response to remove any internal thinking blocks or tool syntax
+    return cleanClaudeResponse(result);
   } catch (error) {
     throw new Error(
       error instanceof Error
         ? `Claude CLI execution failed: ${error.message}`
-        : 'Failed to execute Claude CLI'
+        : "Failed to execute Claude CLI",
     );
   }
 }
@@ -76,48 +147,52 @@ export async function executeWithClaudeCLI(
 async function executeCommand(
   args: string[],
   stdin?: string,
-  timeout: number = CLI_TIMEOUT_MS
+  timeout: number = CLI_TIMEOUT_MS,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env }
+    const child = spawn("claude", args, {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env },
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
     let killed = false;
 
     // Set timeout
     const timeoutId = setTimeout(() => {
       killed = true;
-      child.kill('SIGTERM');
+      child.kill("SIGTERM");
       reject(new Error(`Claude CLI timed out after ${timeout / 1000} seconds`));
     }, timeout);
 
     if (child.stdout) {
-      child.stdout.on('data', (data) => {
+      child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
     }
 
     if (child.stderr) {
-      child.stderr.on('data', (data) => {
+      child.stderr.on("data", (data) => {
         stderr += data.toString();
       });
     }
 
-    child.on('error', (error) => {
+    child.on("error", (error) => {
       clearTimeout(timeoutId);
       reject(new Error(`Failed to spawn claude command: ${error.message}`));
     });
 
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       clearTimeout(timeoutId);
       if (killed) return; // Already rejected by timeout
 
       if (code !== 0) {
-        reject(new Error(`Claude CLI exited with code ${code}: ${stderr || 'No error message'}`));
+        reject(
+          new Error(
+            `Claude CLI exited with code ${code}: ${stderr || "No error message"}`,
+          ),
+        );
       } else {
         resolve(stdout);
       }

@@ -281,7 +281,14 @@ export function buildClaudeMdPrompt(context: GenerationContext): string {
   const patterns = context.codebase.detectedPatterns.map(p => `${p.type}: ${p.paths.length} files`).join('\n');
   const files = context.sampledFiles.map(f => f.path).join('\n');
 
-  return `Generate CLAUDE.md for this project. IMPORTANT: Include the Coding Principles section EXACTLY as provided.
+  return `IMPORTANT INSTRUCTIONS:
+- Output ONLY the markdown content directly
+- Do NOT use any tools, function calls, or XML tags
+- Do NOT include <thinking>, <function_calls>, <invoke>, or any other XML-style tags
+- Do NOT explore or read files - use ONLY the context provided below
+- Start your response with the markdown heading immediately
+
+Generate CLAUDE.md for this project. Include the Coding Principles section EXACTLY as provided.
 
 ## Goal
 ${context.goal.description}
