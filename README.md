@@ -1,24 +1,50 @@
 # SuperAgents
 
-> **Context-Aware Claude Code Configuration Generator**
+> **Expert-Backed Claude Code Configuration Generator**
 
-SuperAgents is an intelligent CLI tool that generates highly customized Claude Code configurations (agents, skills, and hooks) based on both your existing codebase AND your project goals. Unlike traditional analyzers that only look at what you have, SuperAgents asks "What are you building?" to create forward-looking configurations that help you achieve your goals faster.
+SuperAgents is an intelligent CLI tool that generates highly customized Claude Code configurations (agents, skills, and hooks) based on both your existing codebase AND your project goals. Each agent is built on principles from industry-leading experts like Uncle Bob, Dan Abramov, Martin Fowler, and more.
 
 ## ✨ Features
 
 - 🎯 **Goal-First Approach** - Understands what you're building, not just what you have
+- 🧠 **Expert-Backed Agents** - 15 agents built on principles from industry leaders
 - 🔍 **Deep Codebase Analysis** - Detects 20+ frameworks automatically
-- 🤖 **Smart Agent Selection** - Context-aware recommendations based on your goals
-- 📚 **100+ Skill Library** - Only relevant skills installed
+- 🆕 **Smart Project Detection** - Guided setup for new projects, auto-analysis for existing codebases
+- 📚 **16 Skill Templates** - Framework-specific best practices
 - 🎨 **Beautiful CLI** - Interactive prompts with progress indicators
-- 🔒 **Privacy-First** - Local processing, smart file sampling
 - ⚡ **Fast & Efficient** - Parallel generation, smart caching, tiered models
 - 💾 **Smart Caching** - Caches analysis and responses for faster subsequent runs
-- ✅ **Input Validation** - Clear error messages prevent runtime failures
-- 🖥️ **Multi-IDE Support** - Works with Claude Code and Cursor
 - 📦 **Monorepo Support** - Detects npm/yarn/pnpm/lerna/turborepo/nx workspaces
 - 🔄 **Incremental Updates** - Update existing configs without regenerating everything
 - 📤 **Export/Import** - Share configurations with your team
+
+## 🧠 Expert-Backed Agents
+
+Every agent is built on principles from recognized industry experts:
+
+| Agent | Expert | Domain |
+|-------|--------|--------|
+| **backend-engineer** | Uncle Bob (Robert C. Martin) | Clean Architecture & SOLID |
+| **frontend-specialist** | Dan Abramov | React Patterns |
+| **code-reviewer** | Google Engineering | Code Review Practices |
+| **debugger** | Julia Evans | Systematic Debugging |
+| **devops-specialist** | Kelsey Hightower | Infrastructure Patterns |
+| **security-analyst** | OWASP Foundation | Security Best Practices |
+| **database-specialist** | Martin Kleppmann | Data-Intensive Apps |
+| **api-designer** | Stripe | API Design Principles |
+| **testing-specialist** | Kent Beck | Test-Driven Development |
+| **docs-writer** | Divio | Documentation System |
+| **performance-optimizer** | Addy Osmani | Web Performance |
+| **copywriter** | Paolo Gervasi | Conversion Copywriting |
+| **designer** | Sarah Corti | UI/UX Design |
+| **architect** | Martin Fowler | Enterprise Patterns |
+| **product-manager** | Marty Cagan | Product Discovery |
+
+All agents include **Karpathy's 4 Coding Principles** for systematic, high-quality code:
+1. Think Before Coding
+2. Simplicity First
+3. Surgical Changes
+4. Goal-Driven Execution
 
 ## 🚀 Installation
 
@@ -74,51 +100,6 @@ Commands:
   superagents import <source>     Import configuration from zip file
 ```
 
-### Examples
-
-```bash
-# Standard run
-superagents
-
-# Preview without API calls (see cost estimate)
-superagents --dry-run
-
-# Verbose mode with debug information
-superagents --verbose
-
-# Update existing configuration (add/remove agents/skills)
-superagents --update
-
-# Check cache status
-superagents cache --stats
-
-# List available templates
-superagents templates --list
-
-# Export config to share with team
-superagents export my-config.zip
-
-# Import shared config
-superagents import my-config.zip
-```
-
-## 🖥️ IDE Support
-
-SuperAgents supports multiple IDEs:
-
-| IDE | Output Location | Format |
-|-----|-----------------|--------|
-| **Claude Code** | `.claude/` + `CLAUDE.md` | Markdown |
-| **Cursor** | `.cursor/rules/` | `.mdc` files |
-
-When you run SuperAgents, you'll be asked which IDE you're using:
-
-```
-? Which IDE are you using?
-> Claude Code (Official Anthropic CLI)
-  Cursor (AI-powered code editor)
-```
-
 ## 🔐 Authentication
 
 SuperAgents supports two authentication methods:
@@ -128,20 +109,114 @@ SuperAgents supports two authentication methods:
 | **Claude Plan** | Select in CLI                         | Claude Max subscribers |
 | **API Key**     | `export ANTHROPIC_API_KEY=sk-ant-...` | API users              |
 
-For Cursor users, authentication is optional - you can use template-only mode without an API key.
-
 ## 🏗️ How It Works
 
-1. **Select IDE** - Choose between Claude Code or Cursor
-2. **Ask Your Goal** - "What are you building?" (tech stack detected automatically)
-3. **Analyze Your Code** - Deep codebase scan with monorepo detection
-4. **Smart Recommendations** - AI-powered agent & skill suggestions based on your goal
-5. **Generate Configuration** - Custom configuration folder with:
-   - Project overview (CLAUDE.md or project.mdc)
-   - `agents/` - Specialized sub-agents
-   - `skills/` - Tech-specific knowledge
-   - `hooks/` - Auto-loading scripts
-   - `settings.json` - Configuration
+### For New Projects (empty/minimal directory)
+
+Guided spec gathering with 4 questions:
+1. **What are you building?** - Your project vision
+2. **What tech stack?** - Next.js, React+Node, Python+FastAPI, etc.
+3. **Primary focus?** - Frontend, backend, fullstack, or API-only
+4. **Key requirements?** - Auth, payments, real-time, database, external APIs
+
+### For Existing Codebases
+
+1. **Auto-Analyze** - Deep codebase scan with framework detection
+2. **Ask Your Goal** - "What are you working on?"
+3. **Smart Recommendations** - Expert-backed agents & skills based on goal + codebase
+4. **Generate Configuration** - Custom `.claude/` folder with everything you need
+
+### Output Structure
+
+```
+project/
+├── CLAUDE.md              # Project overview with Karpathy principles
+└── .claude/
+    ├── settings.json      # Configuration
+    ├── agents/            # Expert-backed agents
+    │   ├── backend-engineer.md    (Uncle Bob's principles)
+    │   ├── frontend-specialist.md (Dan Abramov's patterns)
+    │   └── ...
+    ├── skills/            # Framework-specific knowledge
+    │   ├── react.md
+    │   ├── typescript.md
+    │   └── ...
+    └── hooks/
+        └── skill-loader.sh
+```
+
+## 💡 Example Usage
+
+```bash
+$ superagents
+
+╔═══════════════════════════════════════════════════════════════╗
+║   SUPERAGENTS                                                 ║
+║   Expert-Backed Claude Code Configuration Generator           ║
+║   Powered by principles from industry leaders                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Version 1.3.1
+
+  Detected: Existing codebase
+
+? What are you building?
+> A SaaS analytics dashboard with React and Node.js
+
+? Project type
+> SaaS Dashboard (detected)
+
+? Which AI model should we use?
+> Claude Sonnet 4.5 (Fast & capable)
+
+⠋ Analyzing codebase...
+⠋ Generating recommendations...
+
+┌  Expert-Backed Agents
+│
+│    ✓ frontend-specialist [Dan Abramov]
+│       Dashboard UI development
+│    ✓ backend-engineer [Uncle Bob]
+│       API and data layer
+│    ✓ designer [Sarah Corti]
+│       UI/UX design and consistency
+│
+└
+
+? Select agents (built on industry-leading principles)
+> frontend-specialist, backend-engineer, designer, code-reviewer
+
+✓ Generation complete! [100%]
+
+✓ Success! Your expert-backed configuration is ready.
+
+Created in: /path/to/your/project
+  CLAUDE.md
+  .claude/settings.json
+  .claude/agents/ (4 files)
+  .claude/skills/ (3 files)
+
+Agents: (4) - Built on industry-leading principles
+  ✓ frontend-specialist — Dan Abramov's React Patterns
+  ✓ backend-engineer — Uncle Bob's Clean Architecture & SOLID
+  ✓ designer — Sarah Corti's UI/UX Design
+  ✓ code-reviewer — Google Engineering's Code Review Practices
+
+Skills: (3) - Framework-specific best practices
+  ✓ react
+  ✓ typescript
+  ✓ nodejs
+
+What you get:
+  • Agents trained on best practices from industry experts
+  • Karpathy's 4 coding principles baked into every agent
+  • Context-aware skills tailored to your stack
+
+Next steps:
+  1. cd your-project && claude to start coding
+  2. /agent backend-engineer to switch agents
+  3. Agents auto-apply expert principles to every task
+```
 
 ## 🧠 Smart Recommendations
 
@@ -152,7 +227,7 @@ SuperAgents parses your goal description to detect technologies:
 > A multi-tenant platform with FastAPI + React + PostgreSQL
 
 Detected technologies: FastAPI, React, PostgreSQL
-→ Recommending: fastapi, python, react, typescript, prisma/drizzle
+→ Recommending: fastapi, python, react, typescript, prisma
 → Agents: backend-engineer, api-designer, frontend-specialist, database-specialist
 ```
 
@@ -179,22 +254,6 @@ SuperAgents automatically detects monorepos:
 | Turborepo | `turbo.json` |
 | Nx | `nx.json` |
 
-When a monorepo is detected, you can select which packages to configure:
-
-```
-┌  Monorepo Detected
-│
-│  Found 5 packages in this monorepo:
-│    • @myapp/web (packages/web)
-│    • @myapp/api (packages/api)
-│    • @myapp/shared (packages/shared)
-│
-◇  Select packages to configure
-│  ◉ @myapp/web
-│  ◉ @myapp/api
-│  ◯ @myapp/shared
-```
-
 ## 🎨 Custom Templates
 
 Create your own agent and skill templates:
@@ -215,20 +274,13 @@ superagents templates --delete my-agent --type agent
 
 Custom templates location: `~/.superagents/templates/`
 
-```
-~/.superagents/templates/
-├── agents/
-│   └── my-custom-agent.md
-└── skills/
-    └── my-custom-skill.md
-```
-
 Templates support variable substitution:
-- `{{projectName}}` - Project name
 - `{{goal}}` - User's goal description
 - `{{framework}}` - Detected framework
 - `{{language}}` - Primary language
 - `{{dependencies}}` - Key dependencies
+- `{{model}}` - Selected AI model
+- `{{skills}}` - Selected skills
 
 ## 📤 Export & Import
 
@@ -245,12 +297,6 @@ superagents import config.zip --preview
 superagents import config.zip --force
 ```
 
-The zip includes:
-- All agents and skills
-- CLAUDE.md
-- settings.json
-- Metadata (version, goal, timestamps)
-
 ## 🔄 Incremental Updates
 
 Update existing configurations without regenerating everything:
@@ -263,97 +309,6 @@ Options:
 - **Add new agents/skills** - Select from available templates
 - **Remove agents/skills** - Clean up unused configurations
 - **Regenerate CLAUDE.md** - Update project context
-
-## 💡 Example Usage
-
-```bash
-$ superagents
-
-╔═══════════════════════════════════════════════════════════════╗
-║   SUPERAGENTS - Context-Aware Configuration Generator         ║
-╚═══════════════════════════════════════════════════════════════╝
-
-  Version 1.3.1
-
-? Which IDE are you using?
-> Claude Code
-
-? What are you building?
-> A SaaS analytics dashboard with React and FastAPI
-
-? Project type
-> SaaS Dashboard (detected)
-
-? Which AI model should we use?
-> Claude Sonnet 4.5 (Fast & capable)
-
-⠋ Analyzing codebase...
-⠋ Generating recommendations...
-
-Recommended Agents:
-  ✓ frontend-specialist (score: 95) - Dashboard UI development
-  ✓ backend-engineer (score: 90) - API and data layer
-  ✓ api-designer (score: 80) - REST API patterns
-
-Recommended Skills:
-  ✓ react (score: 100) - Mentioned in your goal
-  ✓ fastapi (score: 100) - Mentioned in your goal
-  ✓ python (score: 80) - Mentioned in your goal
-  ✓ typescript (score: 90) - Type safety
-
-✓ Success! Your Claude Code configuration is ready.
-
-Created files:
-  CLAUDE.md
-  .claude/settings.json
-
-Agents: (3)
-  → frontend-specialist
-  → backend-engineer
-  → api-designer
-
-Skills: (4)
-  → react
-  → fastapi
-  → python
-  → typescript
-```
-
-## 📁 Output Structure
-
-### Claude Code
-
-```
-project/
-├── CLAUDE.md              # Project overview (root folder)
-└── .claude/
-    ├── settings.json      # Configuration
-    ├── agents/            # Specialized AI agents
-    │   ├── frontend-specialist.md
-    │   ├── backend-engineer.md
-    │   └── api-designer.md
-    ├── skills/            # Domain knowledge
-    │   ├── react.md
-    │   ├── fastapi.md
-    │   └── python.md
-    └── hooks/
-        └── skill-loader.sh
-```
-
-### Cursor
-
-```
-project/
-└── .cursor/
-    └── rules/
-        ├── project.mdc        # Main project context
-        ├── agents/
-        │   ├── frontend-specialist.mdc
-        │   └── backend-engineer.mdc
-        └── skills/
-            ├── react.mdc
-            └── fastapi.mdc
-```
 
 ## 🎯 Supported Project Types
 
@@ -369,10 +324,11 @@ project/
 
 ## 📚 Built-in Templates
 
-### Agents (11)
-- backend-engineer, frontend-specialist, code-reviewer, debugger
-- devops-specialist, security-analyst, database-specialist
-- api-designer, testing-specialist, docs-writer, performance-optimizer
+### Agents (15)
+- **Core**: backend-engineer, frontend-specialist, code-reviewer, debugger
+- **Infrastructure**: devops-specialist, security-analyst, database-specialist
+- **Specialized**: api-designer, testing-specialist, docs-writer, performance-optimizer
+- **Product**: copywriter, designer, architect, product-manager
 
 ### Skills (16)
 - typescript, nodejs, react, nextjs, vue, tailwind
@@ -385,7 +341,7 @@ project/
 |---------|---------|
 | **Parallel Generation** | 3x faster with concurrent API calls |
 | **Tiered Models** | Uses Haiku for simple tasks (~80% cost savings) |
-| **Local Templates** | 27 built-in templates (no API needed) |
+| **Local Templates** | 31 built-in templates (no API needed) |
 | **Codebase Caching** | Skip re-analysis on unchanged projects (24h cache) |
 | **Response Caching** | Reuse generated content for same goal/codebase (7-day cache) |
 | **Prompt Compression** | ~40-50% token reduction |
@@ -402,7 +358,7 @@ npm install
 # Run in watch mode
 npm run dev
 
-# Build
+# Build (includes template copying)
 npm run build
 
 # Run tests
@@ -437,4 +393,4 @@ If you find this useful, please star the repo!
 
 ---
 
-**Built with ❤️ for the Claude Code community**
+**Built with expert principles for the Claude Code community**
