@@ -14,7 +14,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-templates",
+    "copy-templates": "mkdir -p dist/templates && cp -r src/templates/agents dist/templates/ && cp -r src/templates/skills dist/templates/",
     "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch --clear-screen=false --ignore 'dist/**' --ignore 'node_modules/**' --ignore '.claude/**' src/index.ts",
     "start": "node dist/index.js",
