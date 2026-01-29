@@ -55,9 +55,11 @@ export function displaySuccess(summary) {
     console.log("\n" +
         pc.green("✓") +
         pc.bold(" Success! Your expert-backed configuration is ready.\n"));
-    console.log(pc.bold("Created files:"));
-    console.log(pc.dim(`  ${summary.claudeDir}/CLAUDE.md`));
-    console.log(pc.dim(`  ${summary.claudeDir}/settings.json`));
+    console.log(pc.bold("Created in: ") + pc.cyan(summary.projectRoot));
+    console.log(pc.dim(`  CLAUDE.md`));
+    console.log(pc.dim(`  .claude/settings.json`));
+    console.log(pc.dim(`  .claude/agents/ (${summary.agents.length} files)`));
+    console.log(pc.dim(`  .claude/skills/ (${summary.skills.length} files)`));
     console.log(pc.bold("\nAgents:") + pc.dim(` (${summary.agents.length}) - Built on industry-leading principles`));
     summary.agents.forEach((agent) => {
         const expertInfo = AGENT_EXPERTS[agent];

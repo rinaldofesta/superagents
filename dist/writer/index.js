@@ -48,6 +48,7 @@ export class OutputWriter {
             totalFiles: outputs.agents.length + outputs.skills.length + (outputs.hooks?.length || 0) + 2,
             agents: outputs.agents.map(a => a.agentName),
             skills: outputs.skills.map(s => s.skillName),
+            projectRoot: this.projectRoot,
             claudeDir
         };
     }

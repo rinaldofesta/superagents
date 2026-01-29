@@ -13,6 +13,7 @@ export declare function displayBanner(): void;
 export declare function displaySuccess(summary: {
     agents: string[];
     skills: string[];
+    projectRoot: string;
     claudeDir: string;
 }): void;
 export declare function displayError(error: string): void;

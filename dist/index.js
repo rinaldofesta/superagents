@@ -256,11 +256,7 @@ program
         const summary = await writer.writeAll(outputs);
         spinner.stop(pc.green('✓') + ' Files written successfully');
         // Display success message
-        displaySuccess({
-            agents: summary.agents,
-            skills: summary.skills,
-            claudeDir: summary.claudeDir
-        });
+        displaySuccess(summary);
     }
     catch (error) {
         if (error instanceof Error) {

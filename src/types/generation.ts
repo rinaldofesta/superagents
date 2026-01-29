@@ -76,5 +76,6 @@ export interface WriteSummary {
   totalFiles: number;
   agents: string[];
   skills: string[];
+  projectRoot: string;
   claudeDir: string;
 }
