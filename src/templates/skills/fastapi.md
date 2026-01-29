@@ -1,10 +1,63 @@
+---
+name: fastapi
+description: |
+  Implements FastAPI endpoint patterns, Pydantic models, and dependency injection.
+  Use when: building REST APIs with FastAPI, defining request/response schemas, implementing authentication, or using async endpoints.
+allowed-tools: Read, Edit, Write, Glob, Grep, Bash, mcp__context7__resolve-library-id, mcp__context7__query-docs
+---
+
 # FastAPI Skill
 
-> Modern, fast Python web framework for building APIs with automatic docs
+This skill covers FastAPI - a modern, fast Python web framework for building APIs with automatic OpenAPI documentation. Focuses on type-safe API development with Pydantic validation and async support.
 
-## When to Use
+## Quick Start
 
-Use this skill when building REST APIs with FastAPI, working with Pydantic models, or implementing async endpoints.
+### Basic API Setup
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+
+app = FastAPI(
+    title="My API",
+    version="1.0.0",
+    description="A sample API"
+)
+
+# Pydantic models for validation
+class UserCreate(BaseModel):
+    email: EmailStr
+    name: str
+    age: Optional[int] = None
+
+class User(UserCreate):
+    id: int
+
+    model_config = {"from_attributes": True}
+
+# Endpoints
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+@app.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: int) -> User:
+    user = await db.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.post("/users/", response_model=User, status_code=201)
+async def create_user(user: UserCreate) -> User:
+    return await db.create_user(user)
+```
+
+### Run the Server
+
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
 ## Key Concepts
 
@@ -16,49 +69,16 @@ Use this skill when building REST APIs with FastAPI, working with Pydantic model
 | Async Support | Native async/await | High performance I/O |
 | Auto Documentation | OpenAPI/Swagger UI | /docs, /redoc |
 
-## Basic Setup
+## Common Patterns
+
+### Dependency Injection
+
+**When:** Sharing resources across endpoints
 
 ```python
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
-from typing import Optional
-
-app = FastAPI(title="My API", version="1.0.0")
-
-# Pydantic models for validation
-class ItemCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-
-class Item(ItemCreate):
-    id: int
-
-    class Config:
-        from_attributes = True  # For ORM integration
-
-# Basic endpoints
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/items/{item_id}")
-async def get_item(item_id: int) -> Item:
-    item = await db.get_item(item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return item
-
-@app.post("/items/", status_code=201)
-async def create_item(item: ItemCreate) -> Item:
-    return await db.create_item(item)
-```
-
-## Dependency Injection
-
-```python
-from fastapi import Depends, Header, HTTPException
-from fastapi.security import HTTPBearer
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Annotated
 
 security = HTTPBearer()
 
@@ -68,94 +88,176 @@ async def get_db():
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 # Auth dependency
 async def get_current_user(
-    token: str = Depends(security),
-    db: Session = Depends(get_db)
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    db: Annotated[Session, Depends(get_db)]
 ) -> User:
-    user = await verify_token(token.credentials, db)
+    user = await verify_token(credentials.credentials, db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     return user
 
 # Use in endpoints
-@app.get("/users/me")
-async def get_me(user: User = Depends(get_current_user)):
-    return user
+@app.get("/users/me", response_model=User)
+async def get_me(
+    current_user: Annotated[User, Depends(get_current_user)]
+) -> User:
+    return current_user
 ```
 
-## Query & Path Parameters
+### Query Parameters with Validation
+
+**When:** Building search and filter endpoints
 
 ```python
-from fastapi import Query, Path
+from fastapi import Query
+from typing import Annotated
 
 @app.get("/items/")
 async def list_items(
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=10, le=100),
-    search: Optional[str] = Query(default=None, min_length=1)
+    skip: Annotated[int, Query(ge=0, description="Items to skip")] = 0,
+    limit: Annotated[int, Query(ge=1, le=100, description="Max items")] = 10,
+    search: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+    sort_by: Annotated[str, Query(pattern="^(name|created_at|price)$")] = "created_at",
 ):
-    return await db.get_items(skip=skip, limit=limit, search=search)
-
-@app.get("/items/{item_id}")
-async def get_item(
-    item_id: int = Path(..., gt=0, description="The item ID")
-):
-    return await db.get_item(item_id)
-```
-
-## Error Handling
-
-```python
-from fastapi import HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-
-# Raise HTTP exceptions
-@app.get("/items/{item_id}")
-async def get_item(item_id: int):
-    if item_id not in items:
-        raise HTTPException(
-            status_code=404,
-            detail="Item not found",
-            headers={"X-Error": "Not found"}
-        )
-    return items[item_id]
-
-# Custom exception handler
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=422,
-        content={"detail": exc.errors(), "body": exc.body}
+    return await db.get_items(
+        skip=skip,
+        limit=limit,
+        search=search,
+        sort_by=sort_by
     )
 ```
 
-## Router Organization
+### Error Handling
+
+**When:** Consistent error responses
 
 ```python
-# routers/items.py
-from fastapi import APIRouter
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
 
-router = APIRouter(prefix="/items", tags=["items"])
+class ErrorResponse(BaseModel):
+    detail: str
+    code: str | None = None
+
+app = FastAPI()
+
+# Custom exception
+class AppException(Exception):
+    def __init__(self, message: str, code: str, status_code: int = 400):
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message, "code": exc.code}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": exc.errors()
+        }
+    )
+```
+
+### Router Organization
+
+**When:** Structuring larger applications
+
+```python
+# routers/users.py
+from fastapi import APIRouter, Depends
+from typing import Annotated
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(verify_api_key)],
+)
 
 @router.get("/")
-async def list_items():
-    return []
+async def list_users():
+    return await db.get_users()
 
-@router.get("/{item_id}")
-async def get_item(item_id: int):
-    return {"id": item_id}
+@router.get("/{user_id}")
+async def get_user(user_id: int):
+    return await db.get_user(user_id)
+
+@router.post("/", status_code=201)
+async def create_user(user: UserCreate):
+    return await db.create_user(user)
 
 # main.py
 from fastapi import FastAPI
-from routers import items, users
+from routers import users, posts, auth
 
 app = FastAPI()
-app.include_router(items.router)
 app.include_router(users.router)
+app.include_router(posts.router)
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
+```
+
+### Background Tasks
+
+**When:** Running async tasks after response
+
+```python
+from fastapi import BackgroundTasks
+
+async def send_email_notification(email: str, message: str):
+    # Simulate sending email
+    await asyncio.sleep(2)
+    print(f"Email sent to {email}")
+
+@app.post("/users/")
+async def create_user(
+    user: UserCreate,
+    background_tasks: BackgroundTasks
+):
+    new_user = await db.create_user(user)
+
+    # This runs after the response is sent
+    background_tasks.add_task(
+        send_email_notification,
+        user.email,
+        "Welcome to our platform!"
+    )
+
+    return new_user
+```
+
+## Project Structure
+
+```
+app/
+├── main.py              # FastAPI app entry
+├── config.py            # Settings and config
+├── dependencies.py      # Shared dependencies
+├── models/
+│   ├── __init__.py
+│   └── user.py          # Pydantic models
+├── routers/
+│   ├── __init__.py
+│   ├── users.py
+│   └── posts.py
+├── services/
+│   ├── __init__.py
+│   └── user_service.py
+└── db/
+    ├── __init__.py
+    └── session.py
 ```
 
 ## Pitfalls
@@ -165,14 +267,31 @@ app.include_router(users.router)
 - Don't forget `await` for async database calls
 - Use `response_model` to control output schema
 - Set CORS middleware for frontend integration
+- Use `Annotated` for cleaner dependency injection
+- Add `lifespan` context for startup/shutdown events
 
-## Context7
+## See Also
 
-```
-mcp__context7__resolve-library-id with "fastapi"
-mcp__context7__query-docs for specific FastAPI questions
-```
+- [models](references/models.md) - Pydantic model patterns
+- [dependencies](references/dependencies.md) - Dependency injection
+- [security](references/security.md) - Authentication patterns
+- [testing](references/testing.md) - API testing with pytest
 
----
+## Related Skills
 
-Generated by SuperAgents
+For Python patterns, see the **python** skill. For database, see the **prisma** skill. For containerization, see the **docker** skill.
+
+## Documentation Resources
+
+> Fetch latest FastAPI documentation with Context7.
+
+**How to use Context7:**
+1. Use `mcp__context7__resolve-library-id` to search for "fastapi"
+2. **Prefer website documentation** (IDs starting with `/websites/`) over source code
+3. Query with `mcp__context7__query-docs` using the resolved library ID
+
+**Recommended Queries:**
+- "Dependency injection patterns"
+- "Pydantic models and validation"
+- "OAuth2 authentication"
+- "Background tasks and lifespan"

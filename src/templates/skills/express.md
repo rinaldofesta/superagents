@@ -1,10 +1,62 @@
+---
+name: express
+description: |
+  Implements Express.js middleware patterns, routing, and API development.
+  Use when: building REST APIs, implementing middleware chains, handling requests/responses, or organizing route handlers.
+allowed-tools: Read, Edit, Write, Glob, Grep, Bash, mcp__context7__resolve-library-id, mcp__context7__query-docs
+---
+
 # Express.js Skill
 
-> Fast, minimalist web framework for Node.js
+This skill covers Express.js 4.x/5.x for building REST APIs and web applications. Focuses on middleware patterns, error handling, and clean route organization.
 
-## When to Use
+## Quick Start
 
-Use this skill when building APIs or web applications with Express.js.
+### Basic Server Setup
+
+```typescript
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+
+const app = express();
+
+// Security and parsing middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+```
+
+### TypeScript Request/Response Types
+
+```typescript
+import type { Request, Response, NextFunction } from 'express';
+
+interface CreateUserBody {
+  email: string;
+  name: string;
+}
+
+app.post('/api/users', (
+  req: Request<{}, {}, CreateUserBody>,
+  res: Response
+) => {
+  const { email, name } = req.body;
+  // ...
+});
+```
 
 ## Key Concepts
 
@@ -13,92 +65,170 @@ Use this skill when building APIs or web applications with Express.js.
 | Middleware | Functions with access to req, res, next | Logging, auth, parsing |
 | Router | Modular route handlers | Organize endpoints |
 | Error Handling | 4-argument middleware | Centralized errors |
-| Static Files | Serve files from directory | Public assets |
+| Request | Incoming HTTP data | Body, params, query |
+| Response | HTTP response methods | json, send, status |
 
-## Basic Setup
+## Common Patterns
 
-```javascript
-const express = require('express');
-const app = express();
+### Authentication Middleware
 
-// Built-in middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+**When:** Protecting routes that require authentication
 
-// Routes
-app.get('/api/users', (req, res) => {
-  res.json({ users: [] });
-});
+```typescript
+import type { Request, Response, NextFunction } from 'express';
 
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
-});
-```
+interface AuthRequest extends Request {
+  user?: { id: string; email: string };
+}
 
-## Middleware Patterns
+async function authenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
 
-```javascript
-// Custom logging middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
-// Authentication middleware
-const authenticate = (req, res, next) => {
-  const token = req.headers.authorization;
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'No token provided' });
   }
-  // Verify token...
-  req.user = decodedUser;
-  next();
-};
 
-// Route-specific middleware
-app.get('/protected', authenticate, (req, res) => {
+  try {
+    const user = await verifyToken(token);
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// Usage
+app.get('/api/profile', authenticate, (req: AuthRequest, res) => {
   res.json({ user: req.user });
 });
 ```
 
-## Error Handling
+### Async Error Handler
 
-```javascript
-// Async error wrapper
-const asyncHandler = (fn) => (req, res, next) => {
+**When:** Handling async route handlers without try/catch everywhere
+
+```typescript
+type AsyncHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<void>;
+
+const asyncHandler = (fn: AsyncHandler) => (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-// Routes with async handler
-app.get('/users/:id', asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw new AppError('User not found', 404);
+// Usage
+app.get('/api/users/:id', asyncHandler(async (req, res) => {
+  const user = await db.users.findById(req.params.id);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
   res.json(user);
 }));
+```
 
-// Global error handler (must be last)
-app.use((err, req, res, next) => {
+### Global Error Handler
+
+**When:** Centralizing error responses
+
+```typescript
+class AppError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number = 500,
+    public code?: string
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
+}
+
+// Must be last middleware
+app.use((
+  err: Error,
+  req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
   console.error(err.stack);
-  res.status(err.statusCode || 500).json({
-    error: err.message || 'Internal Server Error'
+
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      code: err.code,
+    });
+  }
+
+  // Don't expose internal errors in production
+  res.status(500).json({
+    error: process.env.NODE_ENV === 'production'
+      ? 'Internal Server Error'
+      : err.message,
   });
 });
 ```
 
-## Router Organization
+### Router Organization
 
-```javascript
-// routes/users.js
-const router = express.Router();
+**When:** Organizing routes by resource
 
-router.get('/', getUsers);
+```typescript
+// routes/users.ts
+import { Router } from 'express';
+
+const router = Router();
+
+router.get('/', listUsers);
 router.get('/:id', getUser);
 router.post('/', createUser);
+router.put('/:id', updateUser);
+router.delete('/:id', deleteUser);
 
-module.exports = router;
+export default router;
 
-// app.js
-app.use('/api/users', require('./routes/users'));
+// app.ts
+import usersRouter from './routes/users';
+import postsRouter from './routes/posts';
+
+app.use('/api/users', usersRouter);
+app.use('/api/posts', postsRouter);
+```
+
+## Request Validation
+
+```typescript
+import { z } from 'zod';
+
+const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(100),
+  age: z.number().int().positive().optional(),
+});
+
+function validate<T>(schema: z.ZodSchema<T>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: result.error.issues
+      });
+    }
+    req.body = result.data;
+    next();
+  };
+}
+
+app.post('/api/users', validate(createUserSchema), createUser);
 ```
 
 ## Pitfalls
@@ -108,14 +238,30 @@ app.use('/api/users', require('./routes/users'));
 - Define error handler last
 - Use helmet for security headers
 - Validate all inputs
+- Don't forget `return` after sending response in conditionals
 
-## Context7
+## See Also
 
-```
-mcp__context7__resolve-library-id with "express"
-mcp__context7__query-docs for specific Express questions
-```
+- [middleware](references/middleware.md) - Middleware patterns
+- [routing](references/routing.md) - Route organization
+- [errors](references/errors.md) - Error handling patterns
+- [security](references/security.md) - Security best practices
 
----
+## Related Skills
 
-Generated by SuperAgents
+For Node.js patterns, see the **nodejs** skill. For validation, see the **zod** skill. For database, see the **prisma** or **drizzle** skills.
+
+## Documentation Resources
+
+> Fetch latest Express.js documentation with Context7.
+
+**How to use Context7:**
+1. Use `mcp__context7__resolve-library-id` to search for "express"
+2. **Prefer website documentation** (IDs starting with `/websites/`) over source code
+3. Query with `mcp__context7__query-docs` using the resolved library ID
+
+**Recommended Queries:**
+- "Middleware chain and error handling"
+- "Router and route organization"
+- "Request body parsing and validation"
+- "Static files and templating"
