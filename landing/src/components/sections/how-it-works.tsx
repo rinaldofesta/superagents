@@ -177,7 +177,7 @@ Run tests before committing. Keep code clean.`,
 ];
 
 const terminalLines = [
-  { type: "input" as const, content: "npx superagents" },
+  { type: "input" as const, content: "curl -fsSL superagents.playnew.com/install.sh | bash" },
   { type: "output" as const, content: "" },
   { type: "info" as const, content: "◆ SuperAgents v1.0.0" },
   { type: "output" as const, content: "" },

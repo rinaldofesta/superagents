@@ -9,7 +9,7 @@ import { LINKS } from "@/lib/constants";
 
 export function CTA() {
   const [copied, setCopied] = useState(false);
-  const command = "npx superagents";
+  const command = "curl -fsSL https://superagents.playnew.com/install.sh | bash";
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(command);

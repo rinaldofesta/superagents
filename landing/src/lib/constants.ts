@@ -154,7 +154,7 @@ export const STEPS = [
     step: 1,
     title: "Run it",
     description: "One command. In your project directory.",
-    code: "npx superagents",
+    code: "curl -fsSL superagents.playnew.com/install.sh | bash",
   },
   {
     step: 2,
