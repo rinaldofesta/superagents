@@ -1,133 +1,266 @@
-# SuperAgents transforms how developers set up Claude Code by generating context-aware configurations tailored to their specific project. Instead of generic prompts, each generated agent embodies proven software engineering principles from industry legends—Uncle Bob's Clean Code, Dan Abramov's React patterns, Martin Fowler's refactoring techniques, and Kent Beck's TDD methodology. The result: AI-assisted development that produces code matching the quality standards of expert engineers.
+# SuperAgents
 
-## Vision
-
-SuperAgents is a CLI tool that bridges the gap between generic AI assistance and expert-level software development. By encoding the wisdom of industry legends into specialized agents, developers get AI-powered code review, writing, and debugging that adheres to time-tested principles. The vision is to make every developer's AI assistant as knowledgeable as having Uncle Bob, Dan Abramov, Martin Fowler, and Kent Beck reviewing their code.
-
-**Type:** cli-tool
-**Status:** New project
-**Generated:** 1/29/2026, 3:10:27 PM
-
-## What We're Building
-
-SuperAgents generates context-aware Claude Code configurations that understand your specific codebase. Key objectives:
-
-- **Intelligent Project Analysis**: Automatically detect project type, language, framework, and dependencies to generate relevant configurations
-- **Expert-Backed Agents**: Each agent embodies proven methodologies from software engineering legends
-- **Skill System**: Modular knowledge packages that can be loaded on-demand for specific technologies
-- **Zero Configuration**: Works out of the box with sensible defaults while remaining fully customizable
-- **Developer Experience**: Interactive CLI with clear prompts and helpful feedback
-
-## Coding Principles
-
-> Behavioral guidelines to reduce common LLM coding mistakes. These bias toward caution over speed - use judgment for trivial tasks.
-
-### 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-### 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-### 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-### 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+SuperAgents is a CLI tool that generates context-aware Claude Code configurations tailored to specific projects. Each generated agent embodies proven software engineering principles from industry legends—Uncle Bob's Clean Architecture, Dan Abramov's React patterns, Martin Fowler's refactoring techniques, and Kent Beck's TDD methodology.
 
 ## Tech Stack
 
-| Category | Technology | Purpose |
-|----------|------------|---------|
-| Language | TypeScript | Type-safe JavaScript development |
-| Runtime | Node.js | Server-side execution environment |
-| AI Integration | @anthropic-ai/sdk | Claude API interaction |
-| CLI Framework | Commander.js | Command-line argument parsing |
-| CLI UX | @clack/prompts | Interactive terminal prompts |
-| CLI UX | ora | Terminal spinners and loading states |
-| Configuration | cosmiconfig | Config file discovery and loading |
-| File System | fs-extra | Enhanced file operations |
-| File Patterns | glob | File pattern matching |
-| Archives | archiver, unzipper | ZIP file creation and extraction |
+| Layer | Technology | Version | Purpose |
+|-------|------------|---------|---------|
+| Runtime | Node.js | 20.x+ | Server-side execution |
+| Language | TypeScript | 5.x | Type-safe development (strict mode) |
+| AI | @anthropic-ai/sdk | 0.30.x | Claude API interaction |
+| CLI Framework | Commander.js | 12.x | Command-line argument parsing |
+| CLI UX | @clack/prompts | 0.7.x | Interactive terminal prompts |
+| CLI UX | ora | 8.x | Terminal spinners and loading states |
+| CLI UX | picocolors | 1.x | Terminal colors |
+| Config | cosmiconfig | 9.x | Config file discovery |
+| File System | fs-extra | 11.x | Enhanced file operations |
+| File Patterns | glob | 10.x | File pattern matching |
+| Validation | zod | 3.x | Schema validation |
+| Archives | archiver, unzipper | 7.x | ZIP file operations |
+| Testing | Vitest | 4.x | Unit testing framework |
+
+## Quick Start
+
+```bash
+# Prerequisites
+Node.js 20+
+
+# Installation (npm)
+npm install -g superagents
+
+# Or one-line install
+curl -fsSL https://raw.githubusercontent.com/rinaldofesta/superagents/main/install.sh | bash
+
+# Development
+npm install        # Install dependencies
+npm run dev        # Run in development mode
+npm run build      # Build for production
+npm test           # Run tests
+npm run lint       # Lint code
+npm run type-check # Type check without emit
+```
 
 ## Project Structure
 
 ```
 pn-superagents/
 ├── src/
-│   └── index.ts          # Main CLI entry point
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-└── CLAUDE.md            # This file
+│   ├── index.ts                    # CLI entry point (Commander setup)
+│   ├── analyzer/
+│   │   └── codebase-analyzer.ts    # Project detection and analysis
+│   ├── cache/
+│   │   └── index.ts                # Caching for analysis and generation
+│   ├── cli/
+│   │   ├── banner.ts               # ASCII art and success messages
+│   │   ├── dry-run.ts              # Preview mode
+│   │   ├── progress.ts             # Progress indicators
+│   │   └── prompts.ts              # Interactive prompts (@clack/prompts)
+│   ├── config/
+│   │   ├── export-import.ts        # Config export/import (ZIP)
+│   │   └── presets.ts              # Goal-based presets
+│   ├── context/
+│   │   └── recommendation-engine.ts # Agent/skill recommendations
+│   ├── generator/
+│   │   └── index.ts                # AI generation orchestration
+│   ├── prompts/
+│   │   └── templates.ts            # AI prompt templates
+│   ├── templates/
+│   │   ├── agents/                 # 15 expert-backed agent templates
+│   │   ├── skills/                 # 16 framework skill templates
+│   │   ├── custom.ts               # Custom template management
+│   │   └── loader.ts               # Template loading and rendering
+│   ├── types/
+│   │   ├── codebase.ts             # CodebaseAnalysis, Pattern types
+│   │   ├── config.ts               # AgentDefinition, SkillDefinition
+│   │   ├── generation.ts           # GenerationContext, outputs
+│   │   └── goal.ts                 # ProjectGoal, GoalCategory
+│   ├── updater/
+│   │   └── index.ts                # Incremental config updates
+│   ├── utils/
+│   │   ├── auth.ts                 # Anthropic authentication
+│   │   ├── claude-cli.ts           # Claude CLI execution
+│   │   ├── concurrency.ts          # Parallel generation
+│   │   ├── logger.ts               # Verbose logging
+│   │   └── model-selector.ts       # Tiered model selection
+│   └── writer/
+│       └── index.ts                # Output file writer
+├── bin/
+│   └── superagents                 # CLI entry script
+├── package.json
+├── tsconfig.json
+└── .eslintrc.json
 ```
 
-## Available Agents
+## Architecture Overview
 
-Use `/agent <name>` to switch:
-- **backend-engineer** - Building APIs, server logic, database operations, and system architecture following SOLID principles
-- **docs-writer** - Creating clear documentation, README files, API docs, and technical guides
-- **testing-specialist** - Writing unit tests, integration tests, and implementing TDD following Kent Beck's methodology
-- **code-reviewer** - Reviewing PRs with Uncle Bob's Clean Code principles, identifying code smells and suggesting improvements
-- **copywriter** - Crafting user-facing text, error messages, CLI output, and marketing copy
-- **frontend-specialist** - Building UIs with Dan Abramov's React patterns, component architecture, and state management
-- **debugger** - Systematic bug investigation, root cause analysis, and fix verification
+SuperAgents follows a pipeline architecture:
 
-## Available Skills
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   CLI Input  │ -> │   Analyzer   │ -> │  Recommender │ -> │  Generator   │
+│   (prompts)  │    │  (codebase)  │    │ (goal+code)  │    │    (AI)      │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+                                                                    │
+                                                                    v
+                                                            ┌──────────────┐
+                                                            │    Writer    │
+                                                            │  (.claude/)  │
+                                                            └──────────────┘
+```
 
-Use `Skill(name)` to load:
-- **typescript** - TypeScript best practices, type patterns, generics, and strict mode guidelines
-- **nodejs** - Node.js patterns, async/await, streams, error handling, and package management
+1. **CLI Input**: Collects project goal and user preferences via @clack/prompts
+2. **CodebaseAnalyzer**: Detects project type, framework, dependencies, patterns
+3. **RecommendationEngine**: Scores and suggests agents/skills based on goal + codebase
+4. **AIGenerator**: Generates content using templates or Claude API (with caching)
+5. **OutputWriter**: Writes `.claude/` folder structure
 
-## Quick Start
+### Key Modules
 
-1. Switch agent: `/agent <name>`
-2. Load skill: `Skill(name)`
-3. Use Context7 for up-to-date docs
+| Module | Location | Purpose |
+|--------|----------|---------|
+| CodebaseAnalyzer | `src/analyzer/` | Detects project type, framework, dependencies |
+| RecommendationEngine | `src/context/` | Combines goal and codebase for smart recommendations |
+| AIGenerator | `src/generator/` | Orchestrates parallel AI generation with caching |
+| CacheManager | `src/cache/` | Caches analysis (24h) and generation (7 days) |
+| Template system | `src/templates/` | 31 built-in templates to reduce API calls |
 
----
-Generated by SuperAgents - Context-aware configuration for Claude Code
+## Development Guidelines
+
+### File Naming
+- Source files: kebab-case (`codebase-analyzer.ts`, `model-selector.ts`)
+- Template files: kebab-case (`backend-engineer.md`, `testing-specialist.md`)
+
+### Code Naming
+- Functions: camelCase (`analyzeCodebase`, `buildPrompt`)
+- Types/Interfaces: PascalCase (`CodebaseAnalysis`, `GenerationContext`)
+- Constants: SCREAMING_SNAKE (`BUNDLED_AGENTS`, `CACHE_VERSION`)
+- Unused params: underscore prefix (`_framework`, `_result`)
+
+### Import Order
+1. Node.js built-ins (`path`, `fs`, `crypto`)
+2. External packages (`@anthropic-ai/sdk`, `@clack/prompts`)
+3. Internal modules (`./types/`, `./utils/`)
+4. Type imports (with `type` keyword)
+
+### Module Pattern
+- ESM modules with `.js` extensions in imports
+- `type` keyword for type-only imports
+- Named exports preferred over default exports
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `superagents` | Main generation flow |
+| `superagents --dry-run` | Preview without API calls |
+| `superagents -v, --verbose` | Show detailed output |
+| `superagents -u, --update` | Update existing config incrementally |
+| `superagents update` | Self-update to latest version |
+| `superagents cache --stats` | Show cache statistics |
+| `superagents cache --clear` | Clear cached data |
+| `superagents templates --list` | List available templates |
+| `superagents export [output]` | Export config to ZIP |
+| `superagents import <source>` | Import config from ZIP |
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | For API mode | Anthropic API key (sk-ant-...) |
+
+Authentication supports two modes:
+- **API Key**: Set `ANTHROPIC_API_KEY` environment variable
+- **Claude Plan**: Uses Claude CLI for Max subscribers
+
+## Testing
+
+- **Framework**: Vitest 4.x
+- **Run tests**: `npm test`
+- **Watch mode**: `npm run test:watch`
+- **Type check**: `npm run type-check`
+
+## Caching Strategy
+
+| Cache Type | TTL | Key Components |
+|------------|-----|----------------|
+| Codebase Analysis | 24 hours | Project root hash (package.json, tsconfig, src/ structure) |
+| Generation | 7 days | Goal + codebase hash + item type + model |
+
+Cache location: `~/.superagents/cache/`
+
+## Expert-Backed Agents (15)
+
+| Agent | Expert | Domain |
+|-------|--------|--------|
+| backend-engineer | Uncle Bob | Clean Architecture & SOLID |
+| frontend-specialist | Dan Abramov | React Patterns |
+| code-reviewer | Google Engineering | Code Review Practices |
+| debugger | Julia Evans | Systematic Debugging |
+| devops-specialist | Kelsey Hightower | Infrastructure Patterns |
+| security-analyst | OWASP Foundation | Security Best Practices |
+| database-specialist | Martin Kleppmann | Data-Intensive Apps |
+| api-designer | Stripe | API Design Principles |
+| testing-specialist | Kent Beck | Test-Driven Development |
+| docs-writer | Divio | Documentation System |
+| performance-optimizer | Addy Osmani | Web Performance |
+| copywriter | Paolo Gervasi | Conversion Copywriting |
+| designer | Sarah Corti | UI/UX Design |
+| architect | Martin Fowler | Enterprise Patterns |
+| product-manager | Marty Cagan | Product Discovery |
+
+## Built-in Skills (16)
+
+typescript, nodejs, react, nextjs, vue, tailwind, prisma, drizzle, express, supabase, vitest, graphql, docker, python, fastapi, mcp
+
+## Additional Resources
+
+- Repository: https://github.com/rinaldofesta/superagents
+- Issues: https://github.com/rinaldofesta/superagents/issues
+- Custom templates: `~/.superagents/templates/`
+
+## Coding Principles
+
+> Karpathy's 4 principles are embedded in every generated agent.
+
+### 1. Think Before Coding
+- State assumptions explicitly
+- Present multiple interpretations if they exist
+- Push back if a simpler approach exists
+- Stop and ask if something is unclear
+
+### 2. Simplicity First
+- No features beyond what was asked
+- No abstractions for single-use code
+- No speculative flexibility
+- Rewrite 200 lines if they could be 50
+
+### 3. Surgical Changes
+- Don't improve adjacent code
+- Match existing style
+- Only remove orphans YOUR changes created
+- Every changed line traces to the request
+
+### 4. Goal-Driven Execution
+- Transform tasks into verifiable goals
+- Write tests first when possible
+- State a brief plan for multi-step tasks
+- Define success criteria before implementing
+
+
+## Skill Usage Guide
+
+When working on tasks involving these technologies, invoke the corresponding skill:
+
+| Skill | Invoke When |
+|-------|-------------|
+| nodejs | Configures Node.js runtime, module patterns, and server-side APIs |
+| commander | Builds CLI argument parsing, command hierarchies, and option handling |
+| typescript | Enforces TypeScript strict mode, type patterns, and type-safe development |
+| clack | Creates interactive terminal prompts, multi-select inputs, and user interactions |
+| zod | Implements schema validation, type inference, and runtime type checking |
+| vitest | Sets up unit testing, test runners, and test coverage in Vitest |
+| anthropic-sdk | Integrates Claude API calls, streaming, and model selection patterns |
+| cosmiconfig | Manages configuration file discovery and hierarchical config loading |
+| glob | Implements file pattern matching and recursive directory traversal |
+| fs-extra | Handles file system operations, directory creation, and file writing |

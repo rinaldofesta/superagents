@@ -18,14 +18,14 @@ export async function collectProjectGoal(): Promise<{ description: string; categ
   // Use p.group for back navigation support
   const answers = await p.group({
     description: () => p.text({
-      message: 'What are you building?',
-      placeholder: 'E.g., A SaaS analytics dashboard with real-time charts',
+      message: 'Describe your project in one sentence',
+      placeholder: 'A SaaS dashboard with real-time analytics and team collaboration',
       validate: (value) => {
         if (!value || value.trim().length === 0) {
-          return 'Please describe your project';
+          return 'A brief description helps us recommend the right agents';
         }
         if (value.trim().length < 10) {
-          return 'Please provide more detail (at least 10 characters)';
+          return 'Add a bit more detail so we can tailor recommendations';
         }
         return undefined;
       }
@@ -35,15 +35,15 @@ export async function collectProjectGoal(): Promise<{ description: string; categ
 
       // Build options array, filtering out duplicate
       const allOptions: Array<{ value: GoalCategory; label: string; hint: string }> = [
-        { value: 'saas-dashboard', label: 'SaaS Dashboard', hint: 'Analytics, metrics, admin panels' },
-        { value: 'ecommerce', label: 'E-Commerce Platform', hint: 'Online stores, marketplaces' },
+        { value: 'saas-dashboard', label: 'SaaS Dashboard', hint: 'Admin panels, analytics, metrics' },
+        { value: 'ecommerce', label: 'E-Commerce', hint: 'Stores, carts, payments' },
         { value: 'content-platform', label: 'Content Platform', hint: 'Blogs, CMS, publishing' },
-        { value: 'api-service', label: 'API Service', hint: 'REST/GraphQL APIs, microservices' },
-        { value: 'mobile-app', label: 'Mobile App', hint: 'iOS, Android, React Native' },
-        { value: 'cli-tool', label: 'CLI Tool', hint: 'Command-line utilities' },
-        { value: 'data-pipeline', label: 'Data Pipeline', hint: 'ETL, data processing' },
-        { value: 'auth-service', label: 'Auth Service', hint: 'Authentication, user management' },
-        { value: 'custom', label: 'Custom', hint: 'Something else' }
+        { value: 'api-service', label: 'API Service', hint: 'REST, GraphQL, microservices' },
+        { value: 'mobile-app', label: 'Mobile App', hint: 'React Native, iOS, Android' },
+        { value: 'cli-tool', label: 'CLI Tool', hint: 'Terminal utilities, automation' },
+        { value: 'data-pipeline', label: 'Data Pipeline', hint: 'ETL, batch processing' },
+        { value: 'auth-service', label: 'Auth Service', hint: 'Login, OAuth, sessions' },
+        { value: 'custom', label: 'Other', hint: 'Different project type' }
       ];
 
       // Add detected option at the top if it's not 'custom'
@@ -59,7 +59,7 @@ export async function collectProjectGoal(): Promise<{ description: string; categ
         : allOptions;
 
       return p.select({
-        message: 'Project type (use ← to go back)',
+        message: 'What type of project is this?',
         options: options as any,
         initialValue: suggestedCategory
       });
@@ -80,17 +80,17 @@ export async function collectProjectGoal(): Promise<{ description: string; categ
 export async function selectModel(): Promise<'opus' | 'sonnet'> {
   const result = await p.group({
     model: () => p.select<{ value: 'opus' | 'sonnet'; label: string; hint: string }[], 'opus' | 'sonnet'>({
-      message: 'Which AI model should we use? (use ← to go back)',
+      message: 'Choose generation quality',
       options: [
         {
           value: 'sonnet',
-          label: 'Claude Sonnet 4.5',
-          hint: 'Fast & capable (recommended)'
+          label: 'Sonnet 4.5',
+          hint: 'Fast, high quality (recommended)'
         },
         {
           value: 'opus',
-          label: 'Claude Opus 4.5',
-          hint: 'Most capable (slower, higher cost)'
+          label: 'Opus 4.5',
+          hint: 'Maximum quality, slower'
         }
       ],
       initialValue: 'sonnet'
@@ -121,14 +121,14 @@ export async function confirmSelections(recommendations: Recommendations): Promi
 
   p.note(
     agentLines,
-    'Expert-Backed Agents'
+    'Recommended Agents'
   );
 
   const agents = await p.multiselect({
-    message: `Select agents ${pc.dim('(built on industry-leading principles)')}`,
+    message: `Which agents should Claude use?`,
     options: recommendations.agents.map(agent => {
       const expert = AGENT_EXPERTS[agent.name];
-      const expertHint = expert ? `${expert.expert}'s ${expert.domain}` : agent.reasons[0];
+      const expertHint = expert ? `${expert.domain} (${expert.expert})` : agent.reasons[0];
       return {
         value: agent.name,
         label: agent.name,
@@ -150,11 +150,11 @@ export async function confirmSelections(recommendations: Recommendations): Promi
       .slice(0, 5)
       .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
       .join('\n'),
-    'Framework Skills'
+    'Recommended Skills'
   );
 
   const skills = await p.multiselect({
-    message: `Select skills ${pc.dim('(framework-specific best practices)')}`,
+    message: `Which framework guides should Claude learn?`,
     options: recommendations.skills.map(skill => ({
       value: skill.name,
       label: skill.name,
@@ -174,7 +174,7 @@ export async function confirmSelections(recommendations: Recommendations): Promi
 
 export async function confirmOverwrite(dirName = '.claude'): Promise<boolean> {
   const shouldOverwrite = await p.confirm({
-    message: `${dirName} directory already exists. Overwrite?`,
+    message: `${dirName} already exists. Replace it with new config?`,
     initialValue: false
   });
 
@@ -187,13 +187,13 @@ export async function confirmOverwrite(dirName = '.claude'): Promise<boolean> {
 
 export async function selectPackages(packages: MonorepoPackage[]): Promise<string[]> {
   p.note(
-    `Found ${packages.length} packages in this monorepo:\n` +
+    `Found ${packages.length} packages:\n` +
     packages.map(p => `  ${pc.green('•')} ${p.name} (${p.relativePath})`).join('\n'),
     'Monorepo Detected'
   );
 
   const selected = await p.multiselect({
-    message: `Select packages to configure ${pc.dim('(space to toggle, enter to confirm)')}`,
+    message: `Which packages need Claude configuration?`,
     options: packages.map(pkg => ({
       value: pkg.relativePath,
       label: pkg.name,
@@ -247,19 +247,19 @@ export async function detectProjectMode(projectRoot: string = process.cwd()): Pr
  * Asks 4 questions to understand what the user is building
  */
 export async function collectNewProjectSpec(): Promise<ProjectSpec> {
-  p.intro(pc.bgCyan(pc.black(' SuperAgents - New Project Setup ')));
+  p.intro(pc.bgCyan(pc.black(' SuperAgents - New Project ')));
 
   const answers = await p.group({
     // Step 1: Core vision
     vision: () => p.text({
-      message: 'What are you building?',
-      placeholder: 'E.g., A task management app with team collaboration',
+      message: 'Describe what you want to build',
+      placeholder: 'A task management app with team collaboration',
       validate: (value) => {
         if (!value || value.trim().length === 0) {
-          return 'Please describe your project';
+          return 'A brief description helps us pick the right agents';
         }
         if (value.trim().length < 10) {
-          return 'Please provide more detail (at least 10 characters)';
+          return 'Add a bit more detail so we can tailor recommendations';
         }
         return undefined;
       }
@@ -267,38 +267,38 @@ export async function collectNewProjectSpec(): Promise<ProjectSpec> {
 
     // Step 2: Tech stack
     stack: () => p.select<{ value: TechStack; label: string; hint: string }[], TechStack>({
-      message: 'What tech stack? (use ← to go back)',
+      message: 'What tech stack will you use?',
       options: [
-        { value: 'nextjs', label: 'Next.js (Full-stack)', hint: 'React + API routes + SSR' },
-        { value: 'react-node', label: 'React + Node.js', hint: 'Separate frontend and backend' },
-        { value: 'python-fastapi', label: 'Python + FastAPI', hint: 'Python backend with FastAPI' },
-        { value: 'vue-node', label: 'Vue + Node.js', hint: 'Vue frontend with Node backend' },
-        { value: 'other', label: 'Other', hint: 'Custom or unlisted stack' }
+        { value: 'nextjs', label: 'Next.js', hint: 'Full-stack React with SSR' },
+        { value: 'react-node', label: 'React + Node.js', hint: 'Separate frontend/backend' },
+        { value: 'python-fastapi', label: 'Python + FastAPI', hint: 'Python API backend' },
+        { value: 'vue-node', label: 'Vue + Node.js', hint: 'Vue frontend, Node backend' },
+        { value: 'other', label: 'Other', hint: 'Different stack' }
       ],
       initialValue: 'nextjs'
     }),
 
     // Step 3: Focus area
     focus: () => p.select<{ value: ProjectFocus; label: string; hint: string }[], ProjectFocus>({
-      message: 'Primary focus? (use ← to go back)',
+      message: 'Where will most of your work be?',
       options: [
-        { value: 'fullstack', label: 'Full-stack balanced', hint: 'Equal frontend and backend work' },
-        { value: 'frontend', label: 'Frontend-heavy', hint: 'Focus on UI/UX and interactions' },
-        { value: 'backend', label: 'Backend-heavy', hint: 'Focus on APIs and data' },
-        { value: 'api', label: 'API-only', hint: 'No frontend, pure API service' }
+        { value: 'fullstack', label: 'Full-stack', hint: 'Both frontend and backend' },
+        { value: 'frontend', label: 'Frontend-heavy', hint: 'UI, interactions, components' },
+        { value: 'backend', label: 'Backend-heavy', hint: 'APIs, data, business logic' },
+        { value: 'api', label: 'API-only', hint: 'Pure backend service' }
       ],
       initialValue: 'fullstack'
     }),
 
     // Step 4: Key requirements
     requirements: () => p.multiselect<{ value: ProjectRequirement; label: string; hint: string }[], ProjectRequirement>({
-      message: 'Key requirements? (use ← to go back, space to toggle)',
+      message: 'What features will you need?',
       options: [
-        { value: 'auth', label: 'Authentication', hint: 'User login, sessions, OAuth' },
-        { value: 'database', label: 'Database', hint: 'Data persistence with ORM' },
-        { value: 'api', label: 'External APIs', hint: 'Third-party API integrations' },
+        { value: 'auth', label: 'Authentication', hint: 'Login, OAuth, sessions' },
+        { value: 'database', label: 'Database', hint: 'Data storage with ORM' },
+        { value: 'api', label: 'External APIs', hint: 'Third-party integrations' },
         { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
-        { value: 'realtime', label: 'Real-time features', hint: 'WebSockets, live updates' }
+        { value: 'realtime', label: 'Real-time', hint: 'WebSockets, live updates' }
       ],
       required: false
     })

@@ -42,18 +42,18 @@ export function displayDryRunPreview(
   }
 
   console.log('\n' + pc.yellow('═'.repeat(60)));
-  console.log(pc.yellow(pc.bold('  DRY RUN - No files will be created')));
+  console.log(pc.yellow(pc.bold('  PREVIEW MODE - Nothing will be written')));
   console.log(pc.yellow('═'.repeat(60)) + '\n');
 
   // Show project info
-  console.log(pc.bold('Project:'));
-  console.log(pc.dim(`  Goal: ${context.goal.description}`));
+  console.log(pc.bold('Your project:'));
+  console.log(pc.dim(`  Description: ${context.goal.description}`));
   console.log(pc.dim(`  Type: ${context.goal.category}`));
-  console.log(pc.dim(`  Framework: ${context.codebase.framework || 'None detected'}`));
+  console.log(pc.dim(`  Framework: ${context.codebase.framework || 'Not detected'}`));
   console.log('');
 
   // Show what would be generated
-  console.log(pc.bold('Would generate:\n'));
+  console.log(pc.bold('What we would generate:\n'));
 
   // Agents
   console.log(pc.cyan('  Agents:'));
@@ -90,27 +90,26 @@ export function displayDryRunPreview(
   console.log(pc.dim('    → hooks/skill-loader.sh'));
 
   // Output location
-  console.log(pc.bold('\nOutput directory:'));
+  console.log(pc.bold('\nWhere files will go:'));
   console.log(pc.dim(`  ${context.codebase.projectRoot}/.claude/`));
 
   // Estimate API calls and cost
   const estimate = estimateCost(context);
-  console.log(pc.bold('\nEstimated API usage:'));
+  console.log(pc.bold('\nEstimated cost:'));
   console.log(pc.dim(`  API calls: ${estimate.apiCalls}`));
-  console.log(pc.dim(`  Input tokens: ~${estimate.inputTokens.toLocaleString()}`));
-  console.log(pc.dim(`  Output tokens: ~${estimate.outputTokens.toLocaleString()}`));
-  console.log(pc.dim(`  Estimated cost: ~$${estimate.cost.toFixed(4)} USD`));
+  console.log(pc.dim(`  Tokens: ~${(estimate.inputTokens + estimate.outputTokens).toLocaleString()}`));
+  console.log(pc.dim(`  Cost: ~$${estimate.cost.toFixed(4)} USD`));
 
   // Model breakdown
-  console.log(pc.bold('\nModel usage breakdown:'));
+  console.log(pc.bold('\nModels used:'));
   for (const [tier, count] of Object.entries(estimate.modelBreakdown)) {
     if (count > 0) {
-      console.log(pc.dim(`  ${tier}: ${count} call(s)`));
+      console.log(pc.dim(`  ${tier}: ${count} call${count > 1 ? 's' : ''}`));
     }
   }
 
   // Command to run for real
-  console.log(pc.bold('\nTo generate for real, run:'));
+  console.log(pc.bold('\nReady to generate? Run:'));
   console.log(pc.green('  superagents') + '\n');
 }
 

@@ -24,8 +24,8 @@ export const BANNER = `
 ║  ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ███████║         ║
 ║  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝         ║
 ║                                                               ║
-║  Expert-Backed Claude Code Configuration Generator            ║
-║  Powered by principles from industry leaders                  ║
+║  Generate Claude Code configs that write expert-level code    ║
+║  Built on Uncle Bob, Kent Beck, Dan Abramov & more            ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 `;
@@ -65,56 +65,57 @@ export function displaySuccess(summary: {
   console.log(
     "\n" +
       pc.green("✓") +
-      pc.bold(" Success! Your expert-backed configuration is ready.\n"),
+      pc.bold(" Done! Your Claude Code setup is ready.\n"),
   );
 
-  console.log(pc.bold("Created in: ") + pc.cyan(summary.projectRoot));
-  console.log(pc.dim(`  CLAUDE.md`));
-  console.log(pc.dim(`  .claude/settings.json`));
-  console.log(pc.dim(`  .claude/agents/ (${summary.agents.length} files)`));
-  console.log(pc.dim(`  .claude/skills/ (${summary.skills.length} files)`));
+  console.log(pc.bold("Output: ") + pc.cyan(summary.projectRoot));
+  console.log(pc.dim(`  CLAUDE.md                    Project context for Claude`));
+  console.log(pc.dim(`  .claude/settings.json        Editor configuration`));
+  console.log(pc.dim(`  .claude/agents/              ${summary.agents.length} specialized agents`));
+  console.log(pc.dim(`  .claude/skills/              ${summary.skills.length} framework guides`));
 
-  console.log(pc.bold("\nAgents:") + pc.dim(` (${summary.agents.length}) - Built on industry-leading principles`));
+  console.log(pc.bold("\nYour agents:"));
   summary.agents.forEach((agent) => {
     const expertInfo = AGENT_EXPERTS[agent];
     if (expertInfo) {
       console.log(
         pc.green(`  ✓ `) +
         pc.bold(agent) +
-        pc.dim(` — ${expertInfo.expert}'s ${expertInfo.domain}`)
+        pc.dim(` — ${expertInfo.domain} (${expertInfo.expert})`)
       );
     } else {
-      console.log(pc.dim(`  → ${agent}`));
+      console.log(pc.green(`  ✓ `) + pc.bold(agent));
     }
   });
 
-  console.log(pc.bold("\nSkills:") + pc.dim(` (${summary.skills.length}) - Framework-specific best practices`));
+  console.log(pc.bold("\nYour skills:"));
   summary.skills.forEach((skill) => {
     console.log(pc.green(`  ✓ `) + pc.bold(skill));
   });
 
-  console.log("\n" + pc.bold("What you get:"));
-  console.log(pc.cyan("  • Agents trained on best practices from industry experts"));
-  console.log(pc.cyan("  • Karpathy's 4 coding principles baked into every agent"));
-  console.log(pc.cyan("  • Context-aware skills tailored to your stack"));
+  console.log("\n" + pc.bold("Why this matters:"));
+  console.log(pc.cyan("  Claude now writes code following proven patterns"));
+  console.log(pc.cyan("  Each agent applies real engineering principles"));
+  console.log(pc.cyan("  Skills teach Claude your exact tech stack"));
 
-  console.log("\n" + pc.bold("Next steps:"));
+  console.log("\n" + pc.bold("Start using it:"));
   console.log(
     pc.dim("  1. ") +
-      pc.bold("cd your-project && claude") +
-      pc.dim(" to start coding"),
+      pc.bold("claude") +
+      pc.dim(" — Open Claude Code in your project"),
   );
   console.log(
     pc.dim("  2. ") +
       pc.bold("/agent backend-engineer") +
-      pc.dim(" to switch agents"),
+      pc.dim(" — Switch to a specific agent"),
   );
   console.log(
     pc.dim("  3. ") +
-      pc.dim("Agents auto-apply expert principles to every task\n"),
+      pc.dim("Ask Claude to build something — expert patterns apply automatically\n"),
   );
 }
 
 export function displayError(error: string): void {
-  console.log("\n" + pc.red("✗") + pc.bold(" Error: ") + error + "\n");
+  console.log("\n" + pc.red("✗") + pc.bold(" Something went wrong\n"));
+  console.log(pc.dim(`  ${error}\n`));
 }
