@@ -22,7 +22,7 @@ const ShaderPlane = ({
 
   // Use setInterval at 30fps instead of rAF (lower CPU usage)
   useEffect(() => {
-    let startTime = performance.now() / 1000;
+    const startTime = performance.now() / 1000;
 
     const interval = setInterval(() => {
       const now = performance.now() / 1000;
