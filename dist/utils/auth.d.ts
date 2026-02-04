@@ -1,20 +1,21 @@
 /**
  * Anthropic authentication utilities
  *
- * SuperAgents supports three authentication methods:
- * 1. OAuth - Browser-based login with Anthropic (recommended)
- * 2. Claude Plan - Use authenticated Claude CLI (for Max subscription users)
- * 3. API Key - Direct Anthropic API key
+ * SuperAgents supports two authentication methods:
+ * 1. Claude CLI - Use Claude CLI with browser login (for Max subscription users)
+ * 2. API Key - Direct Anthropic API key
+ *
+ * The "Log in with Claude" option uses Claude CLI's built-in OAuth flow,
+ * which handles browser authentication properly with a registered client.
  */
-export type AuthMethod = 'oauth' | 'claude-plan' | 'api-key';
+export type AuthMethod = 'claude-plan' | 'api-key';
 export interface AuthResult {
     method: AuthMethod;
     apiKey?: string;
-    accessToken?: string;
 }
 /**
  * Authenticate user with Anthropic
- * Priority: OAuth tokens > API key in env > Claude CLI > prompt user
+ * Priority: Authenticated CLI > API key in env > Offer login options
  */
 export declare function authenticateWithAnthropic(): Promise<AuthResult>;
 //# sourceMappingURL=auth.d.ts.map

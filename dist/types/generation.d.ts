@@ -12,7 +12,6 @@ export interface GenerationContext {
     selectedModel: 'opus' | 'sonnet';
     authMethod: AuthMethod;
     apiKey?: string;
-    accessToken?: string;
     sampledFiles: SampledFile[];
     verbose?: boolean;
     dryRun?: boolean;

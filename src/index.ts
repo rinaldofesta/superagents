@@ -40,7 +40,6 @@ import { OutputWriter } from './writer/index.js';
 import type { CodebaseAnalysis } from './types/codebase.js';
 import type { GenerationContext } from './types/generation.js';
 import type { ProjectGoal, ProjectMode } from './types/goal.js';
-import type { AuthResult } from './utils/auth.js';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -90,7 +89,7 @@ async function handleUpdateMode(isVerbose: boolean): Promise<void> {
   }
 
   // Authenticate if adding new content
-  let auth: AuthResult = { method: 'api-key', apiKey: undefined };
+  let auth: { method: 'claude-plan' | 'api-key'; apiKey?: string } = { method: 'api-key', apiKey: undefined };
   if (updates.agentsToAdd.length > 0 || updates.skillsToAdd.length > 0 || updates.regenerateClaudeMd) {
     p.note('', pc.bold('\n🔐 Sign in to generate new content'));
     auth = await authenticateWithAnthropic();
@@ -119,7 +118,6 @@ async function handleUpdateMode(isVerbose: boolean): Promise<void> {
     selectedModel: 'sonnet',
     authMethod: auth.method,
     apiKey: auth.apiKey,
-    accessToken: auth.accessToken,
     sampledFiles: codebaseAnalysis.sampledFiles || [],
     verbose: isVerbose,
     dryRun: false,
@@ -185,7 +183,7 @@ program
       }
 
       // Step 1: AUTHENTICATION FIRST (skip in dry-run)
-      let auth: AuthResult = { method: 'api-key', apiKey: undefined };
+      let auth: { method: 'claude-plan' | 'api-key'; apiKey?: string } = { method: 'api-key', apiKey: undefined };
       if (!isDryRun) {
         console.log(pc.dim('\n  Welcome! Let\'s set up your AI team.\n'));
         p.note('', pc.bold('🔐 Sign in to get started'));
@@ -293,7 +291,6 @@ program
         selectedModel: model,
         authMethod: auth.method,
         apiKey: auth.apiKey,
-        accessToken: auth.accessToken,
         sampledFiles: codebaseAnalysis.sampledFiles || [],
         verbose: isVerbose,
         dryRun: isDryRun,
