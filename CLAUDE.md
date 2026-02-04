@@ -1,6 +1,6 @@
 # SuperAgents
 
-SuperAgents is a CLI tool that generates context-aware Claude Code configurations tailored to specific projects. Each generated agent embodies proven software engineering principles from industry legends—Uncle Bob's Clean Architecture, Dan Abramov's React patterns, Martin Fowler's refactoring techniques, and Kent Beck's TDD methodology.
+CLI tool that generates context-aware Claude Code configurations. Analyzes your codebase and goals to recommend specialized AI agents with software engineering principles built in.
 
 ## Tech Stack
 
@@ -189,7 +189,7 @@ Authentication supports two modes:
 
 Cache location: `~/.superagents/cache/`
 
-## Expert-Backed Agents (15)
+## Agents
 
 | Agent | Expert | Domain |
 |-------|--------|--------|
@@ -209,7 +209,7 @@ Cache location: `~/.superagents/cache/`
 | architect | Martin Fowler | Enterprise Patterns |
 | product-manager | Marty Cagan | Product Discovery |
 
-## Built-in Skills (16)
+## Skills
 
 typescript, nodejs, react, nextjs, vue, tailwind, prisma, drizzle, express, supabase, vitest, graphql, docker, python, fastapi, mcp
 
@@ -221,7 +221,7 @@ typescript, nodejs, react, nextjs, vue, tailwind, prisma, drizzle, express, supa
 
 ## Coding Principles
 
-> Karpathy's 4 principles are embedded in every generated agent.
+Karpathy's 4 principles are embedded in every generated agent.
 
 ### 1. Think Before Coding
 - State assumptions explicitly
