@@ -91,7 +91,7 @@ export function AgentsShowcase() {
             work.
           </motion.p>
 
-          <div className="flex w-full items-center justify-center gap-1 md:gap-2">
+          <div className="flex w-full items-center justify-center gap-1.5 sm:gap-2">
             {displayAgents.map((agent, index) => {
               const Icon = iconMap[agent.icon];
               const gradient = gradients[index % gradients.length];
@@ -111,7 +111,7 @@ export function AgentsShowcase() {
                           ? "12rem"
                           : "20rem"
                         : isMobile
-                        ? "2.5rem"
+                        ? "3rem"
                         : "4rem",
                     height: isMobile ? "16rem" : "22rem",
                   }}

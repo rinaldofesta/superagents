@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-2">
             <Image
               src="/favicon.svg"

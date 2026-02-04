@@ -79,7 +79,7 @@ const features: FeatureItem[] = [
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="relative">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {[
               "Next.js",
               "React",
@@ -178,14 +178,14 @@ const features: FeatureItem[] = [
       "TypeScript, React, Next.js, Node.js, Prisma, and more. 16 pre-built skills ready to deploy. Best practices baked in.",
     visual: (
       <div className="flex flex-col items-center justify-center h-full">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {Array.from({ length: 16 }).map((_, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.03 }}
-              className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30"
+              className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30"
             />
           ))}
         </div>
@@ -387,7 +387,7 @@ export function Features() {
           </p>
         </motion.div>
 
-        <div className="relative min-h-[500px] md:min-h-[450px] w-full overflow-hidden rounded-3xl bg-muted/30 border border-border/50 p-6 md:p-8">
+        <div className="relative min-h-[400px] sm:min-h-[450px] md:min-h-[500px] w-full overflow-hidden rounded-3xl bg-muted/30 border border-border/50 p-4 sm:p-6 md:p-8">
           {/* Desktop: Feature cards on left */}
           <div className="relative z-10 hidden md:flex items-center gap-6">
             <Controls

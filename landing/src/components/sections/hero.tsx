@@ -91,14 +91,14 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-16 grid grid-cols-3 gap-8 max-w-md mx-auto">
+          className="mt-12 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-8 max-w-md mx-auto">
           {[
             { value: "15", label: "Expert Agents" },
             { value: "16", label: "Framework Skills" },
             { value: "20+", label: "Tech Detected" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-gradient">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-gradient">
                 {stat.value}
               </div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>

@@ -256,7 +256,7 @@ export function HowItWorks() {
                   Terminal
                 </span>
               </div>
-              <div className="p-3 font-mono text-xs space-y-0.5 max-h-[280px] overflow-y-auto overflow-x-hidden">
+              <div className="p-3 font-mono text-xs space-y-0.5 max-h-[200px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden">
                 {terminalLines.map((line, i) => (
                   <div key={i} className="flex items-start gap-2 min-w-0">
                     {line.type === "input" && (
@@ -286,7 +286,7 @@ export function HowItWorks() {
               <div className="px-4 py-2 border-b border-border/50 bg-neutral-950">
                 <span className="text-xs text-muted-foreground">Explorer</span>
               </div>
-              <div className="p-2 max-h-[200px] overflow-y-auto">
+              <div className="p-2 max-h-[150px] sm:max-h-[200px] overflow-y-auto">
                 <FileTree
                   files={fileStructure}
                   selectedId={selectedFileId}
