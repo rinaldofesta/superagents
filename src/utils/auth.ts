@@ -8,6 +8,8 @@
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
+
+import { orange } from '../cli/colors.js';
 import { checkClaudeCLI } from './claude-cli.js';
 
 export type AuthMethod = 'claude-plan' | 'api-key';
@@ -106,10 +108,10 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
   p.note(
     `${pc.yellow('No authentication found.')}\n\n` +
     `SuperAgents supports two authentication methods:\n\n` +
-    `${pc.cyan('1. Claude Plan')} (Recommended for Max subscribers)\n` +
+    `${orange('1. Claude Plan')} (Recommended for Max subscribers)\n` +
     `   ${pc.dim('• Install Claude CLI:')} ${pc.underline('https://claude.ai/download')}\n` +
     `   ${pc.dim('• Authenticate with:')} ${pc.bold('claude auth login')}\n\n` +
-    `${pc.cyan('2. API Key')}\n` +
+    `${orange('2. API Key')}\n` +
     `   ${pc.dim('• Get key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}\n` +
     `   ${pc.dim('• Set environment variable:')} ${pc.bold('ANTHROPIC_API_KEY=sk-ant-...')}`,
     'Authentication Required'

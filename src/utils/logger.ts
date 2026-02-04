@@ -5,6 +5,8 @@
 
 import pc from 'picocolors';
 
+import { orange } from '../cli/colors.js';
+
 let verboseMode = false;
 
 export function setVerbose(enabled: boolean): void {
@@ -17,7 +19,7 @@ export function isVerbose(): boolean {
 
 export const log = {
   info: (message: string) => {
-    console.log(pc.blue('ℹ') + ' ' + message);
+    console.log(orange('ℹ') + ' ' + message);
   },
 
   success: (message: string) => {
@@ -46,7 +48,7 @@ export const log = {
 
   section: (title: string) => {
     if (verboseMode) {
-      console.log('\n' + pc.bold(pc.cyan(title)));
+      console.log('\n' + pc.bold(orange(title)));
     }
   },
 

@@ -25,6 +25,7 @@ import pc from 'picocolors';
 import { CodebaseAnalyzer } from './analyzer/codebase-analyzer.js';
 import { cache } from './cache/index.js';
 import { displayBanner, displayError, displaySuccess } from './cli/banner.js';
+import { orange } from './cli/colors.js';
 import { displayDryRunPreview } from './cli/dry-run.js';
 import { EXIT_CODES, getExitCodeForError } from './cli/exit-codes.js';
 import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, confirmSelections } from './cli/prompts.js';
@@ -144,7 +145,7 @@ async function handleUpdateMode(isVerbose: boolean): Promise<void> {
     console.log(pc.red('  - ') + 'Skills: ' + result.removed.skills.join(', '));
   }
   if (result.regenerated) {
-    console.log(pc.blue('  ~ ') + 'Regenerated CLAUDE.md');
+    console.log(orange('  ~ ') + 'Regenerated CLAUDE.md');
   }
   console.log('');
 }
@@ -339,7 +340,7 @@ program
   .action(async () => {
     const installDir = path.join(os.homedir(), '.superagents');
 
-    console.log(pc.blue('\n  Checking for updates...\n'));
+    console.log(orange('\n  Checking for updates...\n'));
 
     try {
       // Check if installed via git
@@ -525,7 +526,7 @@ program
       const outputPath = output || `superagents-config-${Date.now()}.zip`;
       const absolutePath = path.isAbsolute(outputPath) ? outputPath : path.join(process.cwd(), outputPath);
 
-      console.log(pc.blue('\n  Creating export...\n'));
+      console.log(orange('\n  Creating export...\n'));
 
       const result = await exportConfig(process.cwd(), absolutePath);
 
@@ -553,7 +554,7 @@ program
       const sourcePath = path.isAbsolute(source) ? source : path.join(process.cwd(), source);
 
       if (options.preview) {
-        console.log(pc.blue('\n  Contents of this export:\n'));
+        console.log(orange('\n  Contents of this export:\n'));
 
         const metadata = await previewConfig(sourcePath);
         if (metadata) {
@@ -569,7 +570,7 @@ program
         return;
       }
 
-      console.log(pc.blue('\n  Importing config...\n'));
+      console.log(orange('\n  Importing config...\n'));
 
       const result = await importConfig(sourcePath, process.cwd(), options.force);
 

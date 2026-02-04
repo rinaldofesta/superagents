@@ -1,14 +1,15 @@
 /**
  * Interactive prompts using @clack/prompts
  */
-import * as p from '@clack/prompts';
-import pc from 'picocolors';
-import fs from 'fs-extra';
 import path from 'path';
+import * as p from '@clack/prompts';
+import fs from 'fs-extra';
 import { glob } from 'glob';
+import pc from 'picocolors';
 import { AGENT_EXPERTS } from './banner.js';
+import { orange, bgOrange } from './colors.js';
 export async function collectProjectGoal() {
-    p.intro(pc.bgCyan(pc.black(' SuperAgents ')));
+    p.intro(bgOrange(pc.black(' SuperAgents ')));
     // Use p.group for back navigation support
     const answers = await p.group({
         description: () => p.text({
@@ -98,7 +99,7 @@ export async function confirmSelections(recommendations) {
         .slice(0, 5)
         .map(a => {
         const expert = AGENT_EXPERTS[a.name];
-        const expertText = expert ? pc.cyan(` [${expert.expert}]`) : '';
+        const expertText = expert ? orange(` [${expert.expert}]`) : '';
         return `  ${pc.green('✓')} ${pc.bold(a.name)}${expertText}\n     ${pc.dim(a.reasons[0])}`;
     })
         .join('\n');
@@ -203,7 +204,7 @@ export async function detectProjectMode(projectRoot = process.cwd()) {
  * Asks 4 questions to understand what the user is building
  */
 export async function collectNewProjectSpec() {
-    p.intro(pc.bgCyan(pc.black(' SuperAgents - New Project ')));
+    p.intro(bgOrange(pc.black(' SuperAgents - New Project ')));
     const answers = await p.group({
         // Step 1: Core vision
         vision: () => p.text({

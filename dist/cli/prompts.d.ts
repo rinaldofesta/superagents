@@ -1,9 +1,9 @@
 /**
  * Interactive prompts using @clack/prompts
  */
-import type { GoalCategory, ProjectMode, ProjectSpec } from '../types/goal.js';
-import type { Recommendations } from '../types/config.js';
 import type { MonorepoPackage } from '../types/codebase.js';
+import type { Recommendations } from '../types/config.js';
+import type { GoalCategory, ProjectMode, ProjectSpec } from '../types/goal.js';
 export declare function collectProjectGoal(): Promise<{
     description: string;
     category: GoalCategory;

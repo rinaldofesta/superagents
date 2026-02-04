@@ -3,6 +3,7 @@
  * Provides structured logging with operation context
  */
 import pc from 'picocolors';
+import { orange } from '../cli/colors.js';
 let verboseMode = false;
 export function setVerbose(enabled) {
     verboseMode = enabled;
@@ -12,7 +13,7 @@ export function isVerbose() {
 }
 export const log = {
     info: (message) => {
-        console.log(pc.blue('ℹ') + ' ' + message);
+        console.log(orange('ℹ') + ' ' + message);
     },
     success: (message) => {
         console.log(pc.green('✓') + ' ' + message);
@@ -35,7 +36,7 @@ export const log = {
     },
     section: (title) => {
         if (verboseMode) {
-            console.log('\n' + pc.bold(pc.cyan(title)));
+            console.log('\n' + pc.bold(orange(title)));
         }
     },
     table: (data) => {

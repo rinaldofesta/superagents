@@ -4,6 +4,7 @@
  * Shows what would be generated without making API calls
  */
 import pc from 'picocolors';
+import { orange } from './colors.js';
 import { selectModel, getSkillComplexity, getModelDisplayName, getModelTier, MODEL_COSTS } from '../utils/model-selector.js';
 // Rough token estimates based on typical usage
 const TOKEN_ESTIMATES = {
@@ -38,7 +39,7 @@ export function displayDryRunPreview(context) {
     // Show what would be generated
     console.log(pc.bold('What we would generate:\n'));
     // Agents
-    console.log(pc.cyan('  Agents:'));
+    console.log(orange('  Agents:'));
     for (const agent of context.selectedAgents) {
         const model = selectModel({
             userSelectedModel: context.selectedModel,
@@ -48,7 +49,7 @@ export function displayDryRunPreview(context) {
         console.log(pc.dim(`      Model: ${getModelDisplayName(model)}`));
     }
     // Skills
-    console.log(pc.cyan('\n  Skills:'));
+    console.log(orange('\n  Skills:'));
     for (const skill of context.selectedSkills) {
         const complexity = getSkillComplexity(skill);
         const model = selectModel({
@@ -60,7 +61,7 @@ export function displayDryRunPreview(context) {
         console.log(pc.dim(`      Model: ${getModelDisplayName(model)}`));
     }
     // Other files
-    console.log(pc.cyan('\n  Other files:'));
+    console.log(orange('\n  Other files:'));
     const claudeMdModel = selectModel({
         userSelectedModel: context.selectedModel,
         generationType: 'claude-md'

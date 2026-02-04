@@ -2,13 +2,14 @@
  * ASCII art banner and branding
  */
 
-import pc from "picocolors";
 import { createRequire } from 'module';
+
+import pc from "picocolors";
+
+import { orange } from './colors.js';
+
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json');
-
-// PlayNew brand orange: #ff4d00 = RGB(255, 77, 0)
-const orange = (text: string) => `\x1b[38;2;255;77;0m${text}\x1b[39m`;
 
 export const BANNER = `
 ╔═══════════════════════════════════════════════════════════════╗
