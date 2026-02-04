@@ -8,24 +8,28 @@
  * - --dry-run: Preview what would be generated without API calls
  * - --verbose: Show detailed logging
  */
-import { Command } from 'commander';
-import * as p from '@clack/prompts';
-import pc from 'picocolors';
+// Node.js built-ins
 import { exec } from 'child_process';
-import { promisify } from 'util';
 import os from 'os';
 import path from 'path';
-import { displayBanner, displayError, displaySuccess } from './cli/banner.js';
-import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, confirmSelections } from './cli/prompts.js';
-import { displayDryRunPreview } from './cli/dry-run.js';
-import { authenticateWithAnthropic } from './utils/auth.js';
-import { setVerbose, log } from './utils/logger.js';
-import { cache } from './cache/index.js';
+import { promisify } from 'util';
+// External packages
+import * as p from '@clack/prompts';
+import { Command } from 'commander';
+import pc from 'picocolors';
+// Internal modules
 import { CodebaseAnalyzer } from './analyzer/codebase-analyzer.js';
+import { cache } from './cache/index.js';
+import { displayBanner, displayError, displaySuccess } from './cli/banner.js';
+import { displayDryRunPreview } from './cli/dry-run.js';
+import { EXIT_CODES, getExitCodeForError } from './cli/exit-codes.js';
+import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, confirmSelections } from './cli/prompts.js';
 import { RecommendationEngine } from './context/recommendation-engine.js';
 import { AIGenerator } from './generator/index.js';
-import { OutputWriter } from './writer/index.js';
 import { ConfigUpdater } from './updater/index.js';
+import { authenticateWithAnthropic } from './utils/auth.js';
+import { setVerbose, log } from './utils/logger.js';
+import { OutputWriter } from './writer/index.js';
 const execAsync = promisify(exec);
 const program = new Command();
 /**
@@ -262,11 +266,12 @@ program
         if (error instanceof Error) {
             log.debug(`Error: ${error.stack}`);
             displayError(error.message);
+            process.exit(getExitCodeForError(error));
         }
         else {
             displayError('An unknown error occurred');
+            process.exit(EXIT_CODES.SYSTEM_ERROR);
         }
-        process.exit(1);
     }
 });
 // Update command

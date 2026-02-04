@@ -2,13 +2,20 @@
  * Config updater - incrementally update .claude/ folder
  */
 
-import fs from 'fs-extra';
+// Node.js built-ins
 import path from 'path';
+
+// External packages
 import * as p from '@clack/prompts';
+import fs from 'fs-extra';
 import pc from 'picocolors';
-import type { GenerationContext, SettingsJson } from '../types/generation.js';
+
+// Internal modules
 import { AIGenerator } from '../generator/index.js';
 import { log } from '../utils/logger.js';
+
+// Type imports
+import type { GenerationContext, SettingsJson } from '../types/generation.js';
 
 interface ExistingConfig {
   agents: string[];

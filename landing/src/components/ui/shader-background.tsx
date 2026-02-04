@@ -173,10 +173,11 @@ const ShaderBackground = ({ className, children }: ShaderBackgroundProps) => {
     []
   );
 
-  // Mobile fallback - static background for better performance
-  if (isMobile) {
+  // Mobile fallback or SSR - static background for better performance and no overflow
+  // isMobile is undefined on SSR, true on mobile, false on desktop
+  if (isMobile !== false) {
     return (
-      <div className={cn("relative overflow-hidden", className)}>
+      <div className={cn("relative overflow-hidden w-full max-w-full", className)}>
         <div className="absolute inset-0 bg-[#0a0a0a]" />
         {children && <div className="relative z-10">{children}</div>}
       </div>
@@ -184,9 +185,26 @@ const ShaderBackground = ({ className, children }: ShaderBackgroundProps) => {
   }
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      <div className="absolute inset-0 w-full h-full" style={{ backgroundColor: '#0a0a0a' }}>
-        <Canvas dpr={[0.5, 0.75]} frameloop="demand" style={{ width: '100%', height: '100%' }}>
+    <div className={cn("relative overflow-hidden w-full max-w-full", className)}>
+      <div 
+        className="absolute inset-0 overflow-hidden" 
+        style={{ 
+          backgroundColor: '#0a0a0a',
+          width: '100%',
+          height: '100%',
+          maxWidth: '100vw'
+        }}
+      >
+        <Canvas 
+          dpr={[0.5, 0.75]} 
+          frameloop="demand" 
+          style={{ 
+            display: 'block',
+            width: '100%', 
+            height: '100%',
+            maxWidth: '100%'
+          }}
+        >
           <ShaderPlane
             vertexShader={vertexShader}
             fragmentShader={fragmentShader}

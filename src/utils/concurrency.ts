@@ -5,7 +5,9 @@
 import pLimit from 'p-limit';
 
 // Limit concurrent API calls to avoid rate limiting
-const API_CONCURRENCY = 3;
+// Configurable via environment variable for different environments
+const DEFAULT_CONCURRENCY = 3;
+const API_CONCURRENCY = parseInt(process.env.SUPERAGENTS_CONCURRENCY || String(DEFAULT_CONCURRENCY), 10) || DEFAULT_CONCURRENCY;
 
 /**
  * Create a new rate limiter (internal helper)

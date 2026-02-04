@@ -3,12 +3,19 @@
  * Caches codebase analysis and AI-generated responses
  */
 
-import fs from 'fs-extra';
-import path from 'path';
+// Node.js built-ins
 import crypto from 'crypto';
 import os from 'os';
-import type { CodebaseAnalysis } from '../types/codebase.js';
+import path from 'path';
+
+// External packages
+import fs from 'fs-extra';
+
+// Internal modules
 import { log } from '../utils/logger.js';
+
+// Type imports
+import type { CodebaseAnalysis } from '../types/codebase.js';
 
 const CACHE_DIR = path.join(os.homedir(), '.superagents', 'cache');
 const CACHE_VERSION = '1'; // Increment when cache format changes
@@ -80,17 +87,19 @@ export class CacheManager {
       'Cargo.toml',
     ];
 
-    const hashes: string[] = [];
-
-    // Hash key configuration files
-    for (const file of filesToHash) {
+    // Hash key configuration files in parallel
+    const hashPromises = filesToHash.map(async (file) => {
       const filePath = path.join(projectRoot, file);
       if (await fs.pathExists(filePath)) {
         const content = await fs.readFile(filePath, 'utf-8');
-        hashes.push(crypto.createHash('md5').update(content).digest('hex'));
         log.debug(`Hashed ${file}`);
+        return crypto.createHash('md5').update(content).digest('hex');
       }
-    }
+      return null;
+    });
+
+    const hashResults = await Promise.all(hashPromises);
+    const hashes: string[] = hashResults.filter((h): h is string => h !== null);
 
     // Hash the src directory structure (not content, just file names)
     const srcDir = path.join(projectRoot, 'src');

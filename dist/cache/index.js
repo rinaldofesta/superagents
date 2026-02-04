@@ -2,10 +2,13 @@
  * Cache management for SuperAgents
  * Caches codebase analysis and AI-generated responses
  */
-import fs from 'fs-extra';
-import path from 'path';
+// Node.js built-ins
 import crypto from 'crypto';
 import os from 'os';
+import path from 'path';
+// External packages
+import fs from 'fs-extra';
+// Internal modules
 import { log } from '../utils/logger.js';
 const CACHE_DIR = path.join(os.homedir(), '.superagents', 'cache');
 const CACHE_VERSION = '1'; // Increment when cache format changes
@@ -54,16 +57,18 @@ export class CacheManager {
             'go.mod',
             'Cargo.toml',
         ];
-        const hashes = [];
-        // Hash key configuration files
-        for (const file of filesToHash) {
+        // Hash key configuration files in parallel
+        const hashPromises = filesToHash.map(async (file) => {
             const filePath = path.join(projectRoot, file);
             if (await fs.pathExists(filePath)) {
                 const content = await fs.readFile(filePath, 'utf-8');
-                hashes.push(crypto.createHash('md5').update(content).digest('hex'));
                 log.debug(`Hashed ${file}`);
+                return crypto.createHash('md5').update(content).digest('hex');
             }
-        }
+            return null;
+        });
+        const hashResults = await Promise.all(hashPromises);
+        const hashes = hashResults.filter((h) => h !== null);
         // Hash the src directory structure (not content, just file names)
         const srcDir = path.join(projectRoot, 'src');
         if (await fs.pathExists(srcDir)) {

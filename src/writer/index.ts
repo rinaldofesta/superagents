@@ -27,32 +27,53 @@ export class OutputWriter {
     await fs.ensureDir(path.join(claudeDir, 'skills'));
     await fs.ensureDir(path.join(claudeDir, 'hooks'));
 
+    // Prepare all write operations for parallel execution
+    const writeOperations: Promise<void>[] = [];
+
     // Write CLAUDE.md to project root (not inside .claude/)
-    await fs.writeFile(
-      path.join(this.projectRoot, 'CLAUDE.md'),
-      outputs.claudeMd,
-      'utf-8'
+    writeOperations.push(
+      fs.writeFile(
+        path.join(this.projectRoot, 'CLAUDE.md'),
+        outputs.claudeMd,
+        'utf-8'
+      )
     );
 
-    // Write agents
+    // Write agents in parallel
     for (const agent of outputs.agents) {
-      await fs.writeFile(
-        path.join(claudeDir, 'agents', agent.filename),
-        agent.content,
-        'utf-8'
+      writeOperations.push(
+        fs.writeFile(
+          path.join(claudeDir, 'agents', agent.filename),
+          agent.content,
+          'utf-8'
+        )
       );
     }
 
-    // Write skills
+    // Write skills in parallel
     for (const skill of outputs.skills) {
-      await fs.writeFile(
-        path.join(claudeDir, 'skills', skill.filename),
-        skill.content,
-        'utf-8'
+      writeOperations.push(
+        fs.writeFile(
+          path.join(claudeDir, 'skills', skill.filename),
+          skill.content,
+          'utf-8'
+        )
       );
     }
 
-    // Write hooks
+    // Write settings.json
+    writeOperations.push(
+      fs.writeFile(
+        path.join(claudeDir, 'settings.json'),
+        JSON.stringify(outputs.settings, null, 2),
+        'utf-8'
+      )
+    );
+
+    // Execute all writes in parallel
+    await Promise.all(writeOperations);
+
+    // Write hooks sequentially (need chmod after write)
     if (outputs.hooks) {
       for (const hook of outputs.hooks) {
         const hookPath = path.join(claudeDir, 'hooks', hook.filename);
@@ -61,13 +82,6 @@ export class OutputWriter {
         await fs.chmod(hookPath, '755');
       }
     }
-
-    // Write settings.json
-    await fs.writeFile(
-      path.join(claudeDir, 'settings.json'),
-      JSON.stringify(outputs.settings, null, 2),
-      'utf-8'
-    );
 
     return {
       totalFiles: outputs.agents.length + outputs.skills.length + (outputs.hooks?.length || 0) + 2,

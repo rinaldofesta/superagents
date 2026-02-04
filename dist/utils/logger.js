@@ -1,10 +1,14 @@
 /**
  * Verbose logging utility for SuperAgents
+ * Provides structured logging with operation context
  */
 import pc from 'picocolors';
 let verboseMode = false;
 export function setVerbose(enabled) {
     verboseMode = enabled;
+}
+export function isVerbose() {
+    return verboseMode;
 }
 export const log = {
     info: (message) => {
@@ -43,4 +47,18 @@ export const log = {
         }
     }
 };
+/**
+ * Create a logger with operation context prefix
+ * Useful for tracking logs from specific operations (e.g., cache, generator)
+ */
+export function createOperationLogger(operationId) {
+    const prefix = `[${operationId}]`;
+    return {
+        debug: (message) => log.debug(`${prefix} ${message}`),
+        verbose: (message) => log.verbose(`${prefix} ${message}`),
+        info: (message) => log.info(`${prefix} ${message}`),
+        warn: (message) => log.warn(`${prefix} ${message}`),
+        error: (message) => log.error(`${prefix} ${message}`)
+    };
+}
 //# sourceMappingURL=logger.js.map

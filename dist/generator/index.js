@@ -6,16 +6,26 @@
  * - Tiered model selection for cost optimization
  * - Verbose logging support
  */
+// External packages
 import Anthropic from '@anthropic-ai/sdk';
-import { executeWithClaudeCLI } from '../utils/claude-cli.js';
 import ora from 'ora';
-import { parallelGenerateWithErrors } from '../utils/concurrency.js';
-import { selectModel, getSkillComplexity, getModelDisplayName } from '../utils/model-selector.js';
-import { log } from '../utils/logger.js';
+// Internal modules
 import { cache } from '../cache/index.js';
 import { buildAgentPrompt as buildCompressedAgentPrompt, buildSkillPrompt as buildCompressedSkillPrompt, buildClaudeMdPrompt as buildCompressedClaudeMdPrompt } from '../prompts/templates.js';
-import { hasTemplate, loadTemplate } from '../templates/loader.js';
 import { hasCustomTemplate, loadCustomTemplate } from '../templates/custom.js';
+import { hasTemplate, loadTemplate } from '../templates/loader.js';
+import { executeWithClaudeCLI } from '../utils/claude-cli.js';
+import { parallelGenerateWithErrors } from '../utils/concurrency.js';
+import { log } from '../utils/logger.js';
+import { selectModel, getSkillComplexity, getModelDisplayName } from '../utils/model-selector.js';
+// Max tokens scaled by generation type to optimize API costs
+const MAX_TOKENS_BY_TYPE = {
+    'agent': 8000,
+    'skill': 4000,
+    'claude-md': 6000,
+    'hook': 2000
+};
+const DEFAULT_MAX_TOKENS = 8000;
 export class AIGenerator {
     codebaseHash = '';
     constructor() {
@@ -80,6 +90,24 @@ export class AIGenerator {
         }, (agentName, _result) => updateProgress('agent', agentName, 'success'), (agentName, error) => {
             updateProgress('agent', agentName, 'error', error.message);
         });
+        // Report aggregate errors for visibility
+        if (agentResults.errors.length > 0) {
+            log.verbose(`⚠ ${agentResults.errors.length} agent(s) failed, using fallback templates`);
+            for (const { item, error } of agentResults.errors) {
+                log.debug(`Agent "${item}" error: ${error.message}`);
+            }
+        }
+        // Fail if majority of agents failed (indicates systemic issue)
+        const agentFailureThreshold = 0.5;
+        if (context.selectedAgents.length > 0 &&
+            agentResults.errors.length > context.selectedAgents.length * agentFailureThreshold) {
+            const errorSummary = agentResults.errors
+                .slice(0, 3)
+                .map(e => `${e.item}: ${e.error.message}`)
+                .join('; ');
+            throw new Error(`Generation failed for ${agentResults.errors.length}/${context.selectedAgents.length} agents. ` +
+                `This may indicate an API or authentication issue. Errors: ${errorSummary}`);
+        }
         // Add successful agents and fallbacks for failed ones
         const agents = [...agentResults.results];
         for (const { item: agentName } of agentResults.errors) {
@@ -109,6 +137,24 @@ export class AIGenerator {
         }, (skillName, _result) => updateProgress('skill', skillName, 'success'), (skillName, error) => {
             updateProgress('skill', skillName, 'error', error.message);
         });
+        // Report aggregate errors for skills
+        if (skillResults.errors.length > 0) {
+            log.verbose(`⚠ ${skillResults.errors.length} skill(s) failed, using fallback templates`);
+            for (const { item, error } of skillResults.errors) {
+                log.debug(`Skill "${item}" error: ${error.message}`);
+            }
+        }
+        // Fail if majority of skills failed
+        const skillFailureThreshold = 0.5;
+        if (context.selectedSkills.length > 0 &&
+            skillResults.errors.length > context.selectedSkills.length * skillFailureThreshold) {
+            const errorSummary = skillResults.errors
+                .slice(0, 3)
+                .map(e => `${e.item}: ${e.error.message}`)
+                .join('; ');
+            throw new Error(`Generation failed for ${skillResults.errors.length}/${context.selectedSkills.length} skills. ` +
+                `This may indicate an API or authentication issue. Errors: ${errorSummary}`);
+        }
         // Add successful skills and fallbacks for failed ones
         const skills = [...skillResults.results];
         for (const { item: skillName } of skillResults.errors) {
@@ -197,7 +243,7 @@ export class AIGenerator {
         }
         // Generate via API
         const prompt = this.buildAgentPrompt(agentName, context);
-        const response = await this.executePrompt(prompt, context, model);
+        const response = await this.executePrompt(prompt, context, model, 'agent');
         // Extract agent content if it's wrapped in markdown code blocks
         const cleaned = response.replace(/```markdown\n?/g, '').replace(/```\n?$/g, '').trim();
         // Save to cache
@@ -244,7 +290,7 @@ export class AIGenerator {
         }
         // Generate via API
         const prompt = this.buildSkillPrompt(skillName, context);
-        const response = await this.executePrompt(prompt, context, model);
+        const response = await this.executePrompt(prompt, context, model, 'skill');
         // Extract skill content if it's wrapped in markdown code blocks
         const cleaned = response.replace(/```markdown\n?/g, '').replace(/```\n?$/g, '').trim();
         // Save to cache
@@ -272,7 +318,7 @@ export class AIGenerator {
         }
         // Generate via API
         const prompt = this.buildClaudeMdPrompt(context);
-        const response = await this.executePrompt(prompt, context, model);
+        const response = await this.executePrompt(prompt, context, model, 'claude-md');
         // Extract content if it's wrapped in markdown code blocks
         const cleaned = response.replace(/```markdown\n?/g, '').replace(/```\n?$/g, '').trim();
         // Save to cache
@@ -527,8 +573,9 @@ Generated by SuperAgents - Context-aware configuration for Claude Code
     }
     /**
      * Execute a prompt using the appropriate auth method
+     * @param generationType - Type of generation for max_tokens scaling
      */
-    async executePrompt(prompt, context, model) {
+    async executePrompt(prompt, context, model, generationType = 'agent') {
         if (context.authMethod === 'claude-plan') {
             // For Claude CLI, we pass the user's selected model preference
             return await executeWithClaudeCLI(prompt, context.selectedModel);
@@ -538,10 +585,11 @@ Generated by SuperAgents - Context-aware configuration for Claude Code
                 throw new Error('API key is required for api-key auth method');
             }
             const anthropic = new Anthropic({ apiKey: context.apiKey });
-            log.debug(`Calling API with model: ${model}`);
+            const maxTokens = MAX_TOKENS_BY_TYPE[generationType] || DEFAULT_MAX_TOKENS;
+            log.debug(`Calling API with model: ${model}, max_tokens: ${maxTokens}`);
             const response = await anthropic.messages.create({
                 model,
-                max_tokens: 8000, // Increased for more detailed responses
+                max_tokens: maxTokens,
                 messages: [{ role: 'user', content: prompt }]
             });
             return response.content[0].type === 'text' ? response.content[0].text : '';

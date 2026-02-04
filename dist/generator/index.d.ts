@@ -46,6 +46,7 @@ export declare class AIGenerator {
     private generateClaudeMd;
     /**
      * Execute a prompt using the appropriate auth method
+     * @param generationType - Type of generation for max_tokens scaling
      */
     private executePrompt;
 }
