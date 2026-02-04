@@ -60,8 +60,8 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col items-center justify-center gap-4 w-full">
-          <div className="relative group w-full max-w-2xl">
+          className="flex flex-col items-center justify-center gap-4">
+          <div className="relative group w-full max-w-2xl mx-auto">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-secondary rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-500" />
             <button
               onClick={handleCopy}
