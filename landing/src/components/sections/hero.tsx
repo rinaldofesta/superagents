@@ -91,7 +91,7 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-12 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-8 max-w-md mx-auto">
+          className="mt-12 sm:mt-16 grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 max-w-xs sm:max-w-md mx-auto">
           {[
             { value: "15", label: "Expert Agents" },
             { value: "16", label: "Framework Skills" },

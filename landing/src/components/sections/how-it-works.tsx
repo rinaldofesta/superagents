@@ -240,7 +240,7 @@ export function HowItWorks() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="grid lg:grid-cols-[350px_1fr] gap-0 rounded-xl overflow-hidden border border-border max-w-full"
+          className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-0 rounded-xl overflow-hidden border border-border max-w-full"
         >
           {/* Terminal + File Tree */}
           <div className="bg-neutral-900 border-b lg:border-b-0 lg:border-r border-border">
@@ -256,7 +256,7 @@ export function HowItWorks() {
                   Terminal
                 </span>
               </div>
-              <div className="p-3 font-mono text-xs space-y-0.5 max-h-[200px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden">
+              <div className="p-3 font-mono text-xs space-y-0.5 max-h-[180px] sm:max-h-[200px] md:max-h-[280px] overflow-y-auto overflow-x-hidden">
                 {terminalLines.map((line, i) => (
                   <div key={i} className="flex items-start gap-2 min-w-0">
                     {line.type === "input" && (
@@ -286,7 +286,7 @@ export function HowItWorks() {
               <div className="px-4 py-2 border-b border-border/50 bg-neutral-950">
                 <span className="text-xs text-muted-foreground">Explorer</span>
               </div>
-              <div className="p-2 max-h-[150px] sm:max-h-[200px] overflow-y-auto">
+              <div className="p-2 max-h-[120px] sm:max-h-[150px] md:max-h-[200px] overflow-y-auto">
                 <FileTree
                   files={fileStructure}
                   selectedId={selectedFileId}
@@ -298,7 +298,7 @@ export function HowItWorks() {
           </div>
 
           {/* Code Preview */}
-          <div className="bg-card min-h-[300px] sm:min-h-[400px] lg:min-h-[480px]">
+          <div className="bg-card min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[480px]">
             <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs sm:text-sm text-foreground truncate">

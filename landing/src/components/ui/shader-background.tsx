@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface ShaderPlaneProps {
   vertexShader: string;
@@ -35,7 +36,7 @@ const ShaderPlane = ({
       }
 
       invalidate(); // Request a single render
-    }, 66); // ~15fps - shader is expensive, slower is fine for ambient effect
+    }, 33); // ~30fps - better performance while still smooth
 
     return () => clearInterval(interval);
   }, [size, invalidate]);
@@ -61,6 +62,8 @@ interface ShaderBackgroundProps {
 }
 
 const ShaderBackground = ({ className, children }: ShaderBackgroundProps) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const vertexShader = `
     varying vec2 vUv;
     void main() {
@@ -169,6 +172,16 @@ const ShaderBackground = ({ className, children }: ShaderBackgroundProps) => {
     }),
     []
   );
+
+  // Mobile fallback - static background for better performance
+  if (isMobile) {
+    return (
+      <div className={cn("relative overflow-hidden", className)}>
+        <div className="absolute inset-0 bg-[#0a0a0a]" />
+        {children && <div className="relative z-10">{children}</div>}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative overflow-hidden", className)}>

@@ -103,26 +103,28 @@ export function AgentsShowcase() {
                     "relative cursor-pointer overflow-hidden rounded-2xl md:rounded-3xl border border-border/50",
                     `bg-gradient-to-br ${gradient}`
                   )}
-                  initial={{ width: "3rem", height: "20rem" }}
+                  initial={{ width: "2.5rem", height: "16rem" }}
                   animate={{
                     width:
                       activeAgent === index
                         ? isMobile
-                          ? "12rem"
+                          ? "10rem"
                           : "20rem"
                         : isMobile
-                        ? "3rem"
+                        ? "2.5rem"
                         : "4rem",
                     height: isMobile ? "16rem" : "22rem",
                   }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   onClick={() => setActiveAgent(index)}
-                  onHoverStart={() => setActiveAgent(index)}>
+                  onHoverStart={() => setActiveAgent(index)}
+                  onTouchStart={() => setActiveAgent(index)}>
                   {agentImages[index % agentImages.length] && (
                     <Image
                       src={agentImages[index % agentImages.length]}
                       alt={agent.name}
                       fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
                       className="object-cover object-top"
                     />
                   )}
