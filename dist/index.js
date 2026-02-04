@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+// Suppress punycode deprecation warning from transitive dependencies
+// This must be before any imports to catch warnings from module loading
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+    if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+        return;
+    }
+    console.warn(warning);
+});
 /**
  * SuperAgents - Context-Aware Claude Code Configuration Generator
  *
@@ -151,7 +160,6 @@ program
         let auth = { method: 'api-key', apiKey: undefined };
         if (!isDryRun) {
             console.log(pc.dim('\n  Welcome! Let\'s set up your AI team.\n'));
-            p.note('', pc.bold('🔐 Sign in to get started'));
             auth = await authenticateWithAnthropic();
             log.debug(`Auth method: ${auth.method}`);
         }

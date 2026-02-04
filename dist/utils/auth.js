@@ -99,20 +99,25 @@ export async function authenticateWithAnthropic() {
         label: 'Set up later',
         hint: 'Exit and configure authentication'
     });
-    // Show appropriate message
+    // Build consolidated note content
+    let noteContent = '';
     if (cliInstalled) {
-        p.note(`${orange('Log in with Claude')} opens your browser for quick authentication.\n` +
-            `${pc.dim('This uses your Claude Max subscription.')}\n\n` +
-            `${pc.dim('Or get an API key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}`, 'Authentication Required');
+        noteContent =
+            `${pc.green('✓')} Claude CLI detected\n\n` +
+                `${orange('Log in with Claude')} opens your browser for quick authentication.\n` +
+                `${pc.dim('This uses your Claude Max subscription.')}\n\n` +
+                `${pc.dim('Or get an API key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}`;
     }
     else {
-        p.note(`${pc.dim('To use browser login, install Claude CLI:')}\n` +
-            `${pc.underline('https://claude.ai/download')}\n\n` +
-            `${pc.dim('Or get an API key from:')}\n` +
-            `${pc.underline('https://console.anthropic.com/settings/keys')}`, 'Authentication Required');
+        noteContent =
+            `${pc.dim('To use browser login, install Claude CLI:')}\n` +
+                `${pc.underline('https://claude.ai/download')}\n\n` +
+                `${pc.dim('Or get an API key from:')}\n` +
+                `${pc.underline('https://console.anthropic.com/settings/keys')}`;
     }
+    p.note(noteContent, '🔐  Authentication');
     const choice = await p.select({
-        message: 'How would you like to authenticate?',
+        message: 'Choose how you want to authenticate:',
         options,
         initialValue: cliInstalled ? 'login' : 'api-key-prompt'
     });
