@@ -7,6 +7,9 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json');
 
+// PlayNew brand orange: #ff4d00 = RGB(255, 77, 0)
+const orange = (text: string) => `\x1b[38;2;255;77;0m${text}\x1b[39m`;
+
 export const BANNER = `
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
@@ -52,7 +55,7 @@ export const AGENT_EXPERTS: Record<string, { expert: string; domain: string }> =
 };
 
 export function displayBanner(): void {
-  console.log(pc.cyan(BANNER));
+  console.log(orange(BANNER));
   console.log(pc.dim(`  Version ${pkg.version}\n`));
 }
 
@@ -68,7 +71,7 @@ export function displaySuccess(summary: {
       pc.bold(" Done! Your Claude Code setup is ready.\n"),
   );
 
-  console.log(pc.bold("Output: ") + pc.cyan(summary.projectRoot));
+  console.log(pc.bold("Output: ") + orange(summary.projectRoot));
   console.log(pc.dim(`  CLAUDE.md                    Project context for Claude`));
   console.log(pc.dim(`  .claude/settings.json        Editor configuration`));
   console.log(pc.dim(`  .claude/agents/              ${summary.agents.length} specialized agents`));
@@ -94,9 +97,9 @@ export function displaySuccess(summary: {
   });
 
   console.log("\n" + pc.bold("Why this matters:"));
-  console.log(pc.cyan("  Claude now writes code following proven patterns"));
-  console.log(pc.cyan("  Each agent applies real engineering principles"));
-  console.log(pc.cyan("  Skills teach Claude your exact tech stack"));
+  console.log(orange("  Claude now writes code following proven patterns"));
+  console.log(orange("  Each agent applies real engineering principles"));
+  console.log(orange("  Skills teach Claude your exact tech stack"));
 
   console.log("\n" + pc.bold("Start using it:"));
   console.log(
