@@ -40,6 +40,7 @@ import { OutputWriter } from './writer/index.js';
 import type { CodebaseAnalysis } from './types/codebase.js';
 import type { GenerationContext } from './types/generation.js';
 import type { ProjectGoal, ProjectMode } from './types/goal.js';
+import type { AuthResult } from './utils/auth.js';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -89,7 +90,7 @@ async function handleUpdateMode(isVerbose: boolean): Promise<void> {
   }
 
   // Authenticate if adding new content
-  let auth: { method: 'api-key' | 'claude-plan'; apiKey?: string } = { method: 'api-key', apiKey: undefined };
+  let auth: AuthResult = { method: 'api-key', apiKey: undefined };
   if (updates.agentsToAdd.length > 0 || updates.skillsToAdd.length > 0 || updates.regenerateClaudeMd) {
     p.note('', pc.bold('\n🔐 Sign in to generate new content'));
     auth = await authenticateWithAnthropic();
@@ -118,6 +119,7 @@ async function handleUpdateMode(isVerbose: boolean): Promise<void> {
     selectedModel: 'sonnet',
     authMethod: auth.method,
     apiKey: auth.apiKey,
+    accessToken: auth.accessToken,
     sampledFiles: codebaseAnalysis.sampledFiles || [],
     verbose: isVerbose,
     dryRun: false,
@@ -182,11 +184,20 @@ program
         return;
       }
 
-      // Step 1: Detect project mode (new vs existing)
+      // Step 1: AUTHENTICATION FIRST (skip in dry-run)
+      let auth: AuthResult = { method: 'api-key', apiKey: undefined };
+      if (!isDryRun) {
+        console.log(pc.dim('\n  Welcome! Let\'s set up your AI team.\n'));
+        p.note('', pc.bold('🔐 Sign in to get started'));
+        auth = await authenticateWithAnthropic();
+        log.debug(`Auth method: ${auth.method}`);
+      }
+
+      // Step 2: Detect project mode (new vs existing)
       const projectMode: ProjectMode = await detectProjectMode(process.cwd());
       log.debug(`Project mode: ${projectMode}`);
 
-      // Step 2: Collect project goal based on mode
+      // Step 3: Collect project goal based on mode
       let goal: ProjectGoal;
 
       if (projectMode === 'new') {
@@ -196,6 +207,7 @@ program
         const goalData = specToGoal(spec);
         goal = {
           ...goalData,
+          requirements: goalData.requirements,  // Preserve requirements from spec
           technicalRequirements: [],
           suggestedAgents: [],
           suggestedSkills: [],
@@ -218,14 +230,6 @@ program
 
       log.debug(`Goal: ${goal.description}`);
       log.debug(`Category: ${goal.category}`);
-
-      // Step 2: Authenticate with Anthropic (skip in dry-run)
-      let auth: { method: 'api-key' | 'claude-plan'; apiKey?: string } = { method: 'api-key', apiKey: undefined };
-      if (!isDryRun) {
-        p.note('', pc.bold('\n🔐 Sign in'));
-        auth = await authenticateWithAnthropic();
-        log.debug(`Auth method: ${auth.method}`);
-      }
 
       // Step 3: Select AI model
       const model = await selectModel();
@@ -289,6 +293,7 @@ program
         selectedModel: model,
         authMethod: auth.method,
         apiKey: auth.apiKey,
+        accessToken: auth.accessToken,
         sampledFiles: codebaseAnalysis.sampledFiles || [],
         verbose: isVerbose,
         dryRun: isDryRun,

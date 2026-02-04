@@ -20,7 +20,8 @@ export interface GenerationContext {
 
   // Authentication
   authMethod: AuthMethod;
-  apiKey?: string;  // Only for 'api-key' method
+  apiKey?: string;       // Only for 'api-key' method
+  accessToken?: string;  // Only for 'oauth' method
 
   // Sampled files for context
   sampledFiles: SampledFile[];

@@ -1,114 +1,134 @@
 /**
  * Anthropic authentication utilities
  *
- * SuperAgents supports two authentication methods:
- * 1. Claude Plan - Use authenticated Claude CLI (for Max subscription users)
- * 2. API Key - Direct Anthropic API key
+ * SuperAgents supports three authentication methods:
+ * 1. OAuth - Browser-based login with Anthropic (recommended)
+ * 2. Claude Plan - Use authenticated Claude CLI (for Max subscription users)
+ * 3. API Key - Direct Anthropic API key
  */
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { orange } from '../cli/colors.js';
 import { checkClaudeCLI } from './claude-cli.js';
+import { loadStoredTokens, performOAuthLogin } from './oauth.js';
 /**
  * Authenticate user with Anthropic
- * Offers two methods: Claude Plan (CLI) or API Key
+ * Priority: OAuth tokens > API key in env > Claude CLI > prompt user
  */
 export async function authenticateWithAnthropic() {
     const spinner = p.spinner();
-    spinner.start('Checking authentication options...');
-    // Check for existing API key in environment
+    spinner.start('Checking authentication...');
+    // Priority 1: Check for existing OAuth tokens
+    const storedTokens = await loadStoredTokens();
+    if (storedTokens) {
+        spinner.stop(pc.green('✓') + ' Authenticated via saved login');
+        return { method: 'oauth', accessToken: storedTokens.accessToken };
+    }
+    // Priority 2: Check for API key in environment
     const envApiKey = process.env.ANTHROPIC_API_KEY;
     const hasApiKey = envApiKey && envApiKey.startsWith('sk-ant-');
-    // Check if Claude CLI is available
+    // Priority 3: Check if Claude CLI is available
     const hasClaudeCLI = await checkClaudeCLI();
     spinner.stop();
-    // If both are available, let user choose
-    if (hasApiKey && hasClaudeCLI) {
-        p.note(`${pc.green('✓')} Found ANTHROPIC_API_KEY in environment\n` +
-            `${pc.green('✓')} Found authenticated Claude CLI\n\n` +
-            `Choose your preferred authentication method:`, 'Authentication Options Available');
-        const choice = await p.select({
-            message: 'How would you like to authenticate?',
-            options: [
-                {
-                    value: 'claude-plan',
-                    label: 'Claude Plan (use authenticated Claude CLI)',
-                    hint: 'Uses your Max subscription'
-                },
-                {
-                    value: 'api-key',
-                    label: 'API Key (use ANTHROPIC_API_KEY)',
-                    hint: 'Direct API usage'
-                }
-            ],
-            initialValue: 'claude-plan'
-        });
-        if (p.isCancel(choice)) {
-            p.cancel('Authentication cancelled');
-            process.exit(0);
+    const options = [
+        {
+            value: 'oauth',
+            label: 'Log in with Claude (Recommended)',
+            hint: 'Opens browser for one-click authentication'
         }
-        if (choice === 'claude-plan') {
-            return { method: 'claude-plan' };
-        }
-        else {
-            // Validate the API key
-            try {
-                await validateApiKey(envApiKey);
-                p.log.success('Using ANTHROPIC_API_KEY from environment');
-                return { method: 'api-key', apiKey: envApiKey };
-            }
-            catch (error) {
-                p.log.error('ANTHROPIC_API_KEY found but invalid');
-                return await promptForApiKey();
-            }
-        }
-    }
-    // Only Claude CLI available
-    if (hasClaudeCLI) {
-        p.note(`${pc.green('✓')} Found authenticated Claude CLI\n\n` +
-            `Using your Claude Max subscription via the CLI.`, 'Claude Plan Authentication');
-        return { method: 'claude-plan' };
-    }
-    // Only API key available
+    ];
+    // Show what's available
+    const availableNotes = [];
     if (hasApiKey) {
-        spinner.start('Validating API key...');
-        try {
-            await validateApiKey(envApiKey);
-            spinner.stop(pc.green('✓') + ' Using ANTHROPIC_API_KEY from environment');
-            return { method: 'api-key', apiKey: envApiKey };
-        }
-        catch (error) {
-            spinner.stop(pc.yellow('⚠') + ' ANTHROPIC_API_KEY found but invalid');
-        }
+        availableNotes.push(`${pc.green('✓')} ANTHROPIC_API_KEY found in environment`);
+        options.push({
+            value: 'api-key',
+            label: 'Use API Key from environment',
+            hint: 'ANTHROPIC_API_KEY detected'
+        });
     }
-    // Nothing available - prompt user
-    p.note(`${pc.yellow('No authentication found.')}\n\n` +
-        `SuperAgents supports two authentication methods:\n\n` +
-        `${orange('1. Claude Plan')} (Recommended for Max subscribers)\n` +
-        `   ${pc.dim('• Install Claude CLI:')} ${pc.underline('https://claude.ai/download')}\n` +
-        `   ${pc.dim('• Authenticate with:')} ${pc.bold('claude auth login')}\n\n` +
-        `${orange('2. API Key')}\n` +
-        `   ${pc.dim('• Get key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}\n` +
-        `   ${pc.dim('• Set environment variable:')} ${pc.bold('ANTHROPIC_API_KEY=sk-ant-...')}`, 'Authentication Required');
+    if (hasClaudeCLI) {
+        availableNotes.push(`${pc.green('✓')} Claude CLI detected`);
+        options.push({
+            value: 'claude-plan',
+            label: 'Use Claude CLI',
+            hint: 'Uses your Max subscription'
+        });
+    }
+    options.push({
+        value: 'api-key-prompt',
+        label: 'Enter API Key manually',
+        hint: 'Paste your Anthropic API key'
+    });
+    options.push({
+        value: 'cancel',
+        label: 'Set up later',
+        hint: 'Exit and configure authentication'
+    });
+    // Display available options note
+    if (availableNotes.length > 0) {
+        p.note(availableNotes.join('\n') + '\n\n' +
+            'Choose how you want to authenticate:', 'Authentication');
+    }
+    else {
+        p.note(`${orange('Log in with Claude')} opens your browser for quick authentication.\n` +
+            `${pc.dim('Or enter an API key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}`, 'Authentication');
+    }
     const choice = await p.select({
-        message: 'Choose authentication method:',
-        options: [
-            {
-                value: 'api-key',
-                label: 'Enter API Key now',
-                hint: 'I have an Anthropic API key'
-            },
-            {
-                value: 'cancel',
-                label: 'Set up later',
-                hint: 'Exit and configure authentication'
-            }
-        ]
+        message: 'How would you like to authenticate?',
+        options,
+        initialValue: 'oauth'
     });
     if (p.isCancel(choice) || choice === 'cancel') {
         p.cancel('Authentication cancelled');
         process.exit(0);
     }
+    // Handle OAuth login
+    if (choice === 'oauth') {
+        try {
+            const tokens = await performOAuthLogin();
+            return { method: 'oauth', accessToken: tokens.accessToken };
+        }
+        catch (error) {
+            p.log.error(error instanceof Error ? error.message : 'OAuth login failed');
+            p.log.info('Falling back to other authentication methods...');
+            // Offer alternative methods
+            if (hasApiKey) {
+                try {
+                    await validateApiKey(envApiKey);
+                    p.log.success('Using ANTHROPIC_API_KEY from environment');
+                    return { method: 'api-key', apiKey: envApiKey };
+                }
+                catch {
+                    // Fall through to manual entry
+                }
+            }
+            if (hasClaudeCLI) {
+                p.log.success('Using Claude CLI');
+                return { method: 'claude-plan' };
+            }
+            return await promptForApiKey();
+        }
+    }
+    // Handle Claude CLI
+    if (choice === 'claude-plan') {
+        return { method: 'claude-plan' };
+    }
+    // Handle environment API key
+    if (choice === 'api-key') {
+        spinner.start('Validating API key...');
+        try {
+            await validateApiKey(envApiKey);
+            spinner.stop(pc.green('✓') + ' API key validated');
+            return { method: 'api-key', apiKey: envApiKey };
+        }
+        catch (error) {
+            spinner.stop(pc.red('✗') + ' API key invalid');
+            p.log.error('The ANTHROPIC_API_KEY in your environment is invalid');
+            return await promptForApiKey();
+        }
+    }
+    // Handle manual API key entry
     return await promptForApiKey();
 }
 /**

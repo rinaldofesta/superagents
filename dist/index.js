@@ -92,6 +92,7 @@ async function handleUpdateMode(isVerbose) {
         selectedModel: 'sonnet',
         authMethod: auth.method,
         apiKey: auth.apiKey,
+        accessToken: auth.accessToken,
         sampledFiles: codebaseAnalysis.sampledFiles || [],
         verbose: isVerbose,
         dryRun: false,
@@ -147,10 +148,18 @@ program
             await handleUpdateMode(isVerbose);
             return;
         }
-        // Step 1: Detect project mode (new vs existing)
+        // Step 1: AUTHENTICATION FIRST (skip in dry-run)
+        let auth = { method: 'api-key', apiKey: undefined };
+        if (!isDryRun) {
+            console.log(pc.dim('\n  Welcome! Let\'s set up your AI team.\n'));
+            p.note('', pc.bold('🔐 Sign in to get started'));
+            auth = await authenticateWithAnthropic();
+            log.debug(`Auth method: ${auth.method}`);
+        }
+        // Step 2: Detect project mode (new vs existing)
         const projectMode = await detectProjectMode(process.cwd());
         log.debug(`Project mode: ${projectMode}`);
-        // Step 2: Collect project goal based on mode
+        // Step 3: Collect project goal based on mode
         let goal;
         if (projectMode === 'new') {
             // New project: guided spec gathering
@@ -159,6 +168,7 @@ program
             const goalData = specToGoal(spec);
             goal = {
                 ...goalData,
+                requirements: goalData.requirements, // Preserve requirements from spec
                 technicalRequirements: [],
                 suggestedAgents: [],
                 suggestedSkills: [],
@@ -181,13 +191,6 @@ program
         }
         log.debug(`Goal: ${goal.description}`);
         log.debug(`Category: ${goal.category}`);
-        // Step 2: Authenticate with Anthropic (skip in dry-run)
-        let auth = { method: 'api-key', apiKey: undefined };
-        if (!isDryRun) {
-            p.note('', pc.bold('\n🔐 Sign in'));
-            auth = await authenticateWithAnthropic();
-            log.debug(`Auth method: ${auth.method}`);
-        }
         // Step 3: Select AI model
         const model = await selectModel();
         log.debug(`Selected model: ${model}`);
@@ -239,6 +242,7 @@ program
             selectedModel: model,
             authMethod: auth.method,
             apiKey: auth.apiKey,
+            accessToken: auth.accessToken,
             sampledFiles: codebaseAnalysis.sampledFiles || [],
             verbose: isVerbose,
             dryRun: isDryRun,
