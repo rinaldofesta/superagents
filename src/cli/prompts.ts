@@ -209,6 +209,8 @@ export async function selectPackages(packages: MonorepoPackage[]): Promise<strin
     'Monorepo Detected'
   );
 
+  console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
+
   const selected = await p.multiselect({
     message: `Which packages need Claude configuration?`,
     options: packages.map(pkg => ({
