@@ -374,15 +374,18 @@ program
       const { stdout: gitCheck } = await execAsync(`cd "${installDir}" && git rev-parse --is-inside-work-tree 2>/dev/null`).catch(() => ({ stdout: '' }));
 
       if (gitCheck.trim() === 'true') {
-        // Git-based installation - reset build artifacts and pull latest
-        console.log(pc.dim('  Preparing update...'));
-        await execAsync(`cd "${installDir}" && git checkout -- dist/ package-lock.json 2>/dev/null || true`);
-        await execAsync(`cd "${installDir}" && git clean -fd dist/ 2>/dev/null || true`);
+        // Git-based installation - fetch and hard reset to avoid conflicts
+        // Get current commit before update
+        const { stdout: beforeCommit } = await execAsync(`cd "${installDir}" && git rev-parse HEAD`);
 
         console.log(pc.dim('  Downloading latest version...'));
-        const { stdout: pullOutput } = await execAsync(`cd "${installDir}" && git pull`);
+        await execAsync(`cd "${installDir}" && git fetch origin main`);
+        await execAsync(`cd "${installDir}" && git reset --hard origin/main`);
 
-        if (pullOutput.includes('Already up to date')) {
+        // Get commit after update
+        const { stdout: afterCommit } = await execAsync(`cd "${installDir}" && git rev-parse HEAD`);
+
+        if (beforeCommit.trim() === afterCommit.trim()) {
           console.log(pc.green('  ✓ You have the latest version!\n'));
         } else {
           // Rebuild after update
