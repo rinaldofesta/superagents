@@ -68,7 +68,7 @@ export function displayDryRunPreview(context) {
     });
     console.log(pc.dim(`    → CLAUDE.md (Model: ${getModelDisplayName(claudeMdModel)})`));
     console.log(pc.dim('    → settings.json'));
-    console.log(pc.dim('    → hooks/skill-loader.sh'));
+    console.log(pc.dim('    → hooks/context-loader.sh'));
     // Output location
     console.log(pc.bold('\nWhere files will go:'));
     console.log(pc.dim(`  ${context.codebase.projectRoot}/.claude/`));

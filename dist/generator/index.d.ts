@@ -42,7 +42,7 @@ export declare class AIGenerator {
     private buildClaudeMdPrompt;
     private generatePlaceholderAgent;
     private generatePlaceholderSkill;
-    private generateSkillLoaderHook;
+    private generateContextLoaderHook;
     private generateClaudeMd;
     /**
      * Execute a prompt using the appropriate auth method

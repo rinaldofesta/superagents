@@ -62,15 +62,26 @@ function cleanClaudeResponse(response) {
 }
 /**
  * Check if Claude CLI is installed and authenticated
+ * Makes a quick API call to verify the user is actually logged in
  */
 export async function checkClaudeCLI() {
     try {
-        const version = await executeCommand(["--version"], undefined, 10000);
-        // Check for "Claude" (case-insensitive) in version output
-        // Example output: "2.1.20 (Claude Code)"
-        return version.toLowerCase().includes("claude");
+        // First check if CLI is installed
+        const version = await executeCommand(["--version"], undefined, 5000);
+        if (!version.toLowerCase().includes("claude")) {
+            return false;
+        }
+        // Make a minimal test call to verify authentication
+        // Simple prompt, short timeout - fast fail if not authenticated
+        const result = await executeCommand([
+            "--print",
+            "--no-session-persistence",
+        ], "Reply with just 'ok'", 10000);
+        // If we got any response without error, user is authenticated
+        return result.length > 0;
     }
     catch {
+        // Any error means not authenticated or CLI issue
         return false;
     }
 }

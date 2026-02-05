@@ -51,6 +51,15 @@ export interface HookOutput {
   hookName: string;
 }
 
+export interface HookConfig {
+  type: 'command';
+  command: string;
+}
+
+export interface HookMatcher {
+  hooks: HookConfig[];
+}
+
 export interface SettingsJson {
   $schema?: string;
   version?: string;
@@ -58,7 +67,7 @@ export interface SettingsJson {
   agents?: Record<string, { path: string }> | string[];
   skills?: Record<string, { path: string }> | string[];
   hooks?: {
-    userPromptSubmit?: string[];
+    UserPromptSubmit?: HookMatcher[];
   };
   model?: string;
   generatedAt?: string;
