@@ -68,28 +68,30 @@ async function installClaudeCLI(): Promise<boolean> {
 }
 
 /**
- * Run claude auth login to authenticate via browser
- * This spawns an interactive process that handles OAuth
+ * Run claude setup-token to authenticate via browser
+ * This opens the browser for OAuth and returns when complete
  */
-async function runClaudeAuthLogin(): Promise<boolean> {
+async function runClaudeLogin(): Promise<boolean> {
   return new Promise((resolve) => {
-    console.log(pc.dim('\n  Opening browser for authentication...\n'));
+    // Show pre-flight message so users know to come back
+    p.note(
+      `A browser window will open for you to sign in.\n\n` +
+      `${pc.bold('After you sign in:')}\n` +
+      `  Come back here — setup continues automatically.`,
+      '🌐  Next Step'
+    );
 
-    const child = spawn('claude', ['auth', 'login'], {
+    const child = spawn('claude', ['setup-token'], {
       stdio: 'inherit',  // Use parent's stdio for interactive auth
     });
 
     child.on('error', (err) => {
-      console.log(pc.red(`\n  Failed to run claude auth login: ${err.message}\n`));
+      console.log(pc.red(`\n  Login failed: ${err.message}\n`));
       resolve(false);
     });
 
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve(true);
-      } else {
-        resolve(false);
-      }
+      resolve(code === 0);
     });
   });
 }
@@ -139,13 +141,13 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
   const options: { value: AuthOption; label: string; hint: string }[] = [
     {
       value: 'login',
-      label: 'Log in with Claude (Recommended)',
-      hint: 'Opens browser for quick sign-in'
+      label: 'Log in with Claude',
+      hint: 'Easiest option — opens your browser'
     },
     {
       value: 'api-key-prompt',
-      label: 'Enter API Key',
-      hint: 'Paste your Anthropic API key'
+      label: 'I have an API key',
+      hint: 'For developers with Anthropic accounts'
     },
     {
       value: 'cancel',
@@ -156,9 +158,9 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
 
   // User-friendly note content (no technical jargon)
   const noteContent =
-    `${orange('Log in with Claude')} opens your browser for quick sign-in.\n` +
-    `${pc.dim('This uses your Claude Pro or Max subscription.')}\n\n` +
-    `${pc.dim('Or get an API key from:')} ${pc.underline('https://console.anthropic.com/settings/keys')}`;
+    `${orange('Log in with Claude')} is the easiest way to get started.\n` +
+    `${pc.dim('Works with any Claude subscription (Pro, Max, or Teams).')}\n\n` +
+    `${pc.dim('Already have an API key? Choose "Enter API Key" below.')}`;
 
   p.note(noteContent, '🔐  Authentication');
 
@@ -209,7 +211,7 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
       installSpinner.stop(pc.green('✓') + ' Ready');
     }
 
-    const success = await runClaudeAuthLogin();
+    const success = await runClaudeLogin();
 
     if (success) {
       // Verify authentication worked
@@ -221,7 +223,7 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
     }
 
     // Login failed or was cancelled
-    p.log.warn('Login was not completed');
+    p.log.warn('Looks like the login didn\'t finish — no worries, you can try again');
 
     const fallback = await p.select({
       message: 'What would you like to do?',
@@ -238,12 +240,12 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
     }
 
     if (fallback === 'retry') {
-      const retrySuccess = await runClaudeAuthLogin();
+      const retrySuccess = await runClaudeLogin();
       if (retrySuccess && await checkClaudeCLI()) {
         p.log.success('Logged in successfully!');
         return { method: 'claude-plan' };
       }
-      p.log.warn('Login not completed');
+      p.log.warn('Login didn\'t complete — let\'s try another way');
     }
 
     return await promptForApiKey();

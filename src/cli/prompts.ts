@@ -137,6 +137,8 @@ export async function confirmSelections(recommendations: Recommendations): Promi
     'Recommended Agents'
   );
 
+  console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
+
   const agents = await p.multiselect({
     message: `Which specialists should help you?`,
     options: recommendations.agents.map(agent => {
@@ -165,6 +167,8 @@ export async function confirmSelections(recommendations: Recommendations): Promi
       .join('\n'),
     'Recommended Skills'
   );
+
+  console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
 
   const skills = await p.multiselect({
     message: `What expertise should your team have?`,
@@ -304,17 +308,20 @@ export async function collectNewProjectSpec(): Promise<ProjectSpec> {
     }),
 
     // Step 4: Key requirements
-    requirements: () => p.multiselect<{ value: ProjectRequirement; label: string; hint: string }[], ProjectRequirement>({
-      message: 'What capabilities do you need?',
-      options: [
-        { value: 'auth', label: 'User accounts', hint: 'Login, signup, OAuth' },
-        { value: 'database', label: 'Data storage', hint: 'Database with ORM' },
-        { value: 'api', label: 'Integrations', hint: 'Third-party APIs and services' },
-        { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
-        { value: 'realtime', label: 'Real-time updates', hint: 'WebSockets, live data' }
-      ],
-      required: false
-    })
+    requirements: () => {
+      console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
+      return p.multiselect<{ value: ProjectRequirement; label: string; hint: string }[], ProjectRequirement>({
+        message: 'What capabilities do you need?',
+        options: [
+          { value: 'auth', label: 'User accounts', hint: 'Login, signup, OAuth' },
+          { value: 'database', label: 'Data storage', hint: 'Database with ORM' },
+          { value: 'api', label: 'Integrations', hint: 'Third-party APIs and services' },
+          { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
+          { value: 'realtime', label: 'Real-time updates', hint: 'WebSockets, live data' }
+        ],
+        required: false
+      });
+    }
   }, {
     onCancel: () => {
       p.cancel('Operation cancelled');

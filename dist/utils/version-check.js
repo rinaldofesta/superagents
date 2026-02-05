@@ -11,7 +11,7 @@ import fs from 'fs-extra';
 import pc from 'picocolors';
 import { orange } from '../cli/colors.js';
 // Current version from package.json
-const CURRENT_VERSION = '1.4.0';
+const CURRENT_VERSION = '1.4.1';
 // GitHub raw URL for package.json
 const VERSION_URL = 'https://raw.githubusercontent.com/Play-New/superagents/main/package.json';
 // Cache settings

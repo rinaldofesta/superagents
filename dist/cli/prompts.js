@@ -113,6 +113,7 @@ export async function confirmSelections(recommendations) {
     })
         .join('\n');
     p.note(agentLines, 'Recommended Agents');
+    console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
     const agents = await p.multiselect({
         message: `Which specialists should help you?`,
         options: recommendations.agents.map(agent => {
@@ -136,6 +137,7 @@ export async function confirmSelections(recommendations) {
         .slice(0, 5)
         .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
         .join('\n'), 'Recommended Skills');
+    console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
     const skills = await p.multiselect({
         message: `What expertise should your team have?`,
         options: recommendations.skills.map(skill => ({
@@ -253,17 +255,20 @@ export async function collectNewProjectSpec() {
             initialValue: 'fullstack'
         }),
         // Step 4: Key requirements
-        requirements: () => p.multiselect({
-            message: 'What capabilities do you need?',
-            options: [
-                { value: 'auth', label: 'User accounts', hint: 'Login, signup, OAuth' },
-                { value: 'database', label: 'Data storage', hint: 'Database with ORM' },
-                { value: 'api', label: 'Integrations', hint: 'Third-party APIs and services' },
-                { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
-                { value: 'realtime', label: 'Real-time updates', hint: 'WebSockets, live data' }
-            ],
-            required: false
-        })
+        requirements: () => {
+            console.log(pc.dim('  ↑↓ to move, Space to select, Enter when done\n'));
+            return p.multiselect({
+                message: 'What capabilities do you need?',
+                options: [
+                    { value: 'auth', label: 'User accounts', hint: 'Login, signup, OAuth' },
+                    { value: 'database', label: 'Data storage', hint: 'Database with ORM' },
+                    { value: 'api', label: 'Integrations', hint: 'Third-party APIs and services' },
+                    { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
+                    { value: 'realtime', label: 'Real-time updates', hint: 'WebSockets, live data' }
+                ],
+                required: false
+            });
+        }
     }, {
         onCancel: () => {
             p.cancel('Operation cancelled');
