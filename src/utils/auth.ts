@@ -68,32 +68,44 @@ async function installClaudeCLI(): Promise<boolean> {
 }
 
 /**
- * Run claude setup-token to authenticate via browser
- * This opens the browser for OAuth and returns when complete
+ * Guide user to set up Claude Code authentication
+ * Returns true if user completed setup, false if cancelled
  */
-async function runClaudeLogin(): Promise<boolean> {
-  return new Promise((resolve) => {
-    // Show pre-flight message so users know to come back
-    p.note(
-      `A browser window will open for you to sign in.\n\n` +
-      `${pc.bold('After you sign in:')}\n` +
-      `  Come back here — setup continues automatically.`,
-      '🌐  Next Step'
-    );
+async function guideClaudeSetup(): Promise<boolean> {
+  // Show clear instructions
+  p.note(
+    `${pc.bold('Quick setup (takes 30 seconds):')}\n\n` +
+    `  1. Open a new terminal window\n` +
+    `  2. Run: ${orange('claude')}\n` +
+    `  3. Sign in with your browser\n` +
+    `  4. Come back here and press Enter\n\n` +
+    `${pc.dim('This connects SuperAgents to your Claude subscription.')}`,
+    '🔐  One-time Setup'
+  );
 
-    const child = spawn('claude', ['setup-token'], {
-      stdio: 'inherit',  // Use parent's stdio for interactive auth
-    });
-
-    child.on('error', (err) => {
-      console.log(pc.red(`\n  Login failed: ${err.message}\n`));
-      resolve(false);
-    });
-
-    child.on('close', (code) => {
-      resolve(code === 0);
-    });
+  const ready = await p.confirm({
+    message: 'Press Enter when you\'ve signed into Claude',
+    active: 'I\'m signed in',
+    inactive: 'Cancel'
   });
+
+  if (p.isCancel(ready) || !ready) {
+    return false;
+  }
+
+  // Verify auth worked
+  const spinner = p.spinner();
+  spinner.start('Verifying...');
+  const isAuthenticated = await checkClaudeCLI();
+  spinner.stop();
+
+  if (isAuthenticated) {
+    p.log.success('Connected to Claude!');
+    return true;
+  } else {
+    p.log.warn('Not connected yet — make sure you completed the sign-in');
+    return false;
+  }
 }
 
 /**
@@ -180,12 +192,12 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
     // Auto-install Claude CLI if not present (silent, clean spinner)
     if (!cliInstalled) {
       const installSpinner = p.spinner();
-      installSpinner.start('Setting up Claude login...');
+      installSpinner.start('Installing Claude Code...');
 
       const installed = await installClaudeCLI();
 
       if (!installed) {
-        installSpinner.stop(pc.yellow('⚠') + ' Setup needs one extra step');
+        installSpinner.stop(pc.yellow('⚠') + ' Installation needs one extra step');
         p.note(
           `Run this command, then try again:\n\n` +
           `  ${pc.bold('npm install -g @anthropic-ai/claude-code')}`,
@@ -208,44 +220,36 @@ export async function authenticateWithAnthropic(): Promise<AuthResult> {
         return await promptForApiKey();
       }
 
-      installSpinner.stop(pc.green('✓') + ' Ready');
+      installSpinner.stop(pc.green('✓') + ' Claude Code installed');
     }
 
-    const success = await runClaudeLogin();
+    // Guide user through Claude setup
+    const success = await guideClaudeSetup();
 
     if (success) {
-      // Verify authentication worked
-      const isNowAuthenticated = await checkClaudeCLI();
-      if (isNowAuthenticated) {
-        p.log.success('Logged in successfully!');
-        return { method: 'claude-plan' };
-      }
+      return { method: 'claude-plan' };
     }
 
-    // Login failed or was cancelled
-    p.log.warn('Looks like the login didn\'t finish — no worries, you can try again');
-
+    // Setup not completed
     const fallback = await p.select({
       message: 'What would you like to do?',
       options: [
         { value: 'api-key', label: 'Enter API Key instead', hint: 'Use your Anthropic API key' },
-        { value: 'retry', label: 'Try login again', hint: 'Opens browser' },
+        { value: 'retry', label: 'Try setup again', hint: 'I\'ll walk you through it' },
         { value: 'cancel', label: 'Exit', hint: 'Try again later' }
       ]
     });
 
     if (p.isCancel(fallback) || fallback === 'cancel') {
-      p.cancel('Authentication cancelled');
+      p.cancel('No problem! Run superagents again when you\'re ready.');
       process.exit(0);
     }
 
     if (fallback === 'retry') {
-      const retrySuccess = await runClaudeLogin();
-      if (retrySuccess && await checkClaudeCLI()) {
-        p.log.success('Logged in successfully!');
+      const retrySuccess = await guideClaudeSetup();
+      if (retrySuccess) {
         return { method: 'claude-plan' };
       }
-      p.log.warn('Login didn\'t complete — let\'s try another way');
     }
 
     return await promptForApiKey();
