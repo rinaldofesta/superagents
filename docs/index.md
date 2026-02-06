@@ -4,7 +4,7 @@ Welcome to SuperAgents. This CLI tool generates context-aware Claude Code config
 
 ## What is SuperAgents?
 
-SuperAgents creates specialized AI agents and framework skills tailored to your project. Each agent embodies proven software engineering principles from industry experts like Uncle Bob, Dan Abramov, and Martin Fowler.
+SuperAgents creates specialized AI agents and framework skills tailored to your project. Each agent embodies proven software engineering principles from industry experts like Uncle Bob, Dan Abramov, Martin Fowler, and Rinaldo Festa.
 
 ## Quick Links
 
@@ -39,8 +39,8 @@ SuperAgents creates specialized AI agents and framework skills tailored to your 
 ## Key Features
 
 - **Context-Aware**: Analyzes your codebase to understand project type, frameworks, and patterns
-- **Expert-Backed**: 15 agents built on industry-proven methodologies
-- **Framework Skills**: 16 skills covering React, Next.js, FastAPI, and more
+- **Expert-Backed**: 21 agents built on industry-proven methodologies
+- **Framework Skills**: 23 skills covering React, Next.js, Angular, Svelte, FastAPI, and more
 - **Smart Caching**: 24-hour codebase cache, 7-day generation cache
 - **Cost-Efficient**: Tiered model selection and local templates reduce API costs by 80%
 - **Privacy-First**: Local analysis, only sends representative files to API

@@ -14,7 +14,7 @@ Each skill is a Markdown file in `.claude/skills/` containing:
 
 When you invoke a skill in Claude Code, it provides framework-specific guidance.
 
-## The 16 Built-in Skills
+## The 23 Built-in Skills
 
 ### Languages & Runtimes
 
@@ -56,6 +56,18 @@ When you invoke a skill in Claude Code, it provides framework-specific guidance.
 - SFC structure and script setup
 - Use for: Vue applications, reactive UIs
 
+**angular**
+- Angular 17+ standalone components and signals
+- Dependency injection, RxJS patterns
+- Routing, forms, HTTP client
+- Use for: Angular applications, enterprise frontends
+
+**svelte**
+- Svelte 5 runes and SvelteKit patterns
+- Reactive declarations, stores, transitions
+- SSR, form actions, load functions
+- Use for: Svelte applications, SvelteKit projects
+
 ### Styling
 
 **tailwind**
@@ -77,6 +89,12 @@ When you invoke a skill in Claude Code, it provides framework-specific guidance.
 - Pydantic models, dependency injection
 - OpenAPI documentation
 - Use for: Python REST APIs, async backends
+
+**nestjs**
+- NestJS modules, controllers, and providers
+- Dependency injection, guards, pipes
+- TypeORM/Prisma integration, middleware
+- Use for: Enterprise Node.js APIs, microservices
 
 ### Database & ORM
 
@@ -120,6 +138,22 @@ When you invoke a skill in Claude Code, it provides framework-specific guidance.
 - Claude integration patterns
 - Use for: Building MCP servers for Claude
 
+### Payments
+
+**stripe**
+- Stripe Checkout, subscriptions, and webhooks
+- Payment intents, customer portal
+- Idempotency, error handling, testing
+- Use for: Payment processing, subscription billing
+
+### Testing (E2E)
+
+**playwright**
+- Playwright end-to-end testing patterns
+- Page Object Model, locators, assertions
+- Cross-browser testing, CI integration
+- Use for: E2E tests, browser automation, visual testing
+
 ### Infrastructure
 
 **docker**
@@ -127,6 +161,20 @@ When you invoke a skill in Claude Code, it provides framework-specific guidance.
 - Dockerfile best practices, multi-stage builds
 - Docker Compose, networking
 - Use for: Containerizing applications
+
+### Business & Finance
+
+**financial-planning**
+- SaaS metrics (MRR, ARR, churn, LTV, CAC)
+- Revenue projections and scenario analysis
+- Unit economics and burn rate modeling
+- Use for: Financial models, business metrics, forecasting
+
+**fundraising**
+- Pitch deck structure and investor materials
+- Cap table modeling and dilution analysis
+- Market sizing (TAM/SAM/SOM), data rooms
+- Use for: Fundraising rounds, pitch decks, investor updates
 
 ## How Skills Work
 

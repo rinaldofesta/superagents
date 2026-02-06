@@ -14,7 +14,7 @@ Each agent is a Markdown file in `.claude/agents/` containing:
 
 When you invoke an agent in Claude Code, it provides specialized assistance based on this context.
 
-## The 15 Expert-Backed Agents
+## The 21 Expert-Backed Agents
 
 ### Backend Development
 
@@ -116,6 +116,46 @@ When you invoke an agent in Claude Code, it provides specialized assistance base
 - Landing pages, email, marketing content
 - Use for: Marketing copy, website content, conversion optimization
 
+### Specialist Roles
+
+**data-engineer** (Joe Reis)
+- Data pipeline lifecycle and architecture
+- Idempotent pipelines, schema evolution
+- ETL/ELT patterns, data quality
+- Use for: Data pipelines, warehouse design, batch/stream processing
+
+**mobile-specialist** (React Native Team)
+- Cross-platform mobile development
+- Offline-first patterns, platform conventions
+- Navigation, performance, native modules
+- Use for: React Native apps, Expo projects, mobile UX
+
+**accessibility-specialist** (Heydon Pickering)
+- Inclusive design patterns and WCAG 2.2
+- Semantic HTML, ARIA, keyboard navigation
+- Screen reader testing, color contrast
+- Use for: Accessibility audits, inclusive UI, a11y compliance
+
+**sre-engineer** (Google SRE)
+- Site reliability engineering principles
+- SLOs, error budgets, observability
+- Circuit breakers, graceful degradation
+- Use for: Monitoring, incident response, reliability planning
+
+### Leadership & Strategy
+
+**tech-lead** (Rinaldo Festa)
+- Pragmatic technical leadership
+- People over process, speed beats size
+- Context-driven decisions, prototype-first approach
+- Use for: Architecture decisions, team coordination, technical strategy
+
+**cfo** (Pasquale Tuosto)
+- Strategic finance and sustainable growth
+- Capital efficiency, financial transparency
+- Scenario planning, fundraising strategy
+- Use for: Financial models, pitch decks, business planning
+
 ## Karpathy's 4 Coding Principles
 
 All agents include these principles:
@@ -215,6 +255,11 @@ SuperAgents detects keywords in your goal:
 | "Docker", "CI/CD" | devops-specialist |
 | "tests", "TDD" | testing-specialist |
 | "documentation", "docs" | docs-writer |
+| "mobile", "React Native" | mobile-specialist |
+| "data pipeline", "ETL" | data-engineer |
+| "accessibility", "a11y" | accessibility-specialist |
+| "SRE", "reliability" | sre-engineer |
+| "financial", "fundraising", "investor" | cfo |
 
 ### Manual Selection
 
