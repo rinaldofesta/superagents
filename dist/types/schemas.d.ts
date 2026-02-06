@@ -12,13 +12,13 @@ export declare const TechRequirementSchema: z.ZodObject<{
     priority: z.ZodEnum<["required", "recommended", "optional"]>;
     suggestedTechnologies: z.ZodArray<z.ZodString, "many">;
 }, "strip", z.ZodTypeAny, {
-    description: string;
     category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+    description: string;
     priority: "required" | "recommended" | "optional";
     suggestedTechnologies: string[];
 }, {
-    description: string;
     category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+    description: string;
     priority: "required" | "recommended" | "optional";
     suggestedTechnologies: string[];
 }>;
@@ -57,13 +57,13 @@ export declare const ProjectGoalSchema: z.ZodObject<{
         priority: z.ZodEnum<["required", "recommended", "optional"]>;
         suggestedTechnologies: z.ZodArray<z.ZodString, "many">;
     }, "strip", z.ZodTypeAny, {
-        description: string;
         category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+        description: string;
         priority: "required" | "recommended" | "optional";
         suggestedTechnologies: string[];
     }, {
-        description: string;
         category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+        description: string;
         priority: "required" | "recommended" | "optional";
         suggestedTechnologies: string[];
     }>, "many">;
@@ -106,16 +106,16 @@ export declare const ProjectGoalSchema: z.ZodObject<{
         priority: number;
         reason: string;
     }[];
+    timestamp: string;
+    category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+    confidence: number;
     description: string;
-    category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
     technicalRequirements: {
-        description: string;
         category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+        description: string;
         priority: "required" | "recommended" | "optional";
         suggestedTechnologies: string[];
     }[];
-    timestamp: string;
-    confidence: number;
 }, {
     suggestedSkills: {
         name: string;
@@ -127,16 +127,16 @@ export declare const ProjectGoalSchema: z.ZodObject<{
         priority: number;
         reason: string;
     }[];
+    timestamp: string;
+    category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+    confidence: number;
     description: string;
-    category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
     technicalRequirements: {
-        description: string;
         category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+        description: string;
         priority: "required" | "recommended" | "optional";
         suggestedTechnologies: string[];
     }[];
-    timestamp: string;
-    confidence: number;
 }>;
 export declare const ProjectTypeSchema: z.ZodEnum<["nextjs", "react", "vue", "angular", "svelte", "node", "python", "go", "rust", "java", "csharp", "php", "ruby", "unknown"]>;
 export declare const ProgrammingLanguageSchema: z.ZodEnum<["typescript", "javascript", "python", "go", "rust", "java", "csharp", "php", "ruby"]>;
@@ -162,27 +162,27 @@ export declare const PatternSchema: z.ZodObject<{
     confidence: z.ZodNumber;
     description: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    description: string;
     type: "api-routes" | "server-actions" | "components" | "services" | "models" | "controllers" | "middleware" | "hooks" | "utils" | "tests";
-    confidence: number;
     paths: string[];
+    confidence: number;
+    description: string;
 }, {
-    description: string;
     type: "api-routes" | "server-actions" | "components" | "services" | "models" | "controllers" | "middleware" | "hooks" | "utils" | "tests";
-    confidence: number;
     paths: string[];
+    confidence: number;
+    description: string;
 }>;
 export declare const SampledFileSchema: z.ZodObject<{
     path: z.ZodString;
     content: z.ZodString;
     purpose: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    content: string;
     path: string;
+    content: string;
     purpose: string;
 }, {
-    content: string;
     path: string;
+    content: string;
     purpose: string;
 }>;
 export declare const AuthMethodSchema: z.ZodEnum<["api-key", "claude-plan"]>;
@@ -197,13 +197,13 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: z.ZodEnum<["required", "recommended", "optional"]>;
             suggestedTechnologies: z.ZodArray<z.ZodString, "many">;
         }, "strip", z.ZodTypeAny, {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }, {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }>, "many">;
@@ -246,16 +246,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     }, {
         suggestedSkills: {
             name: string;
@@ -267,16 +267,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     }>;
     selectedAgents: z.ZodArray<z.ZodString, "many">;
     selectedSkills: z.ZodArray<z.ZodString, "many">;
@@ -288,12 +288,12 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
         content: z.ZodString;
         purpose: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }, {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }>, "many">;
     verbose: z.ZodOptional<z.ZodBoolean>;
@@ -301,8 +301,8 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
     generatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     sampledFiles: {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }[];
     goal: {
@@ -316,16 +316,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     };
     generatedAt: string;
     selectedAgents: string[];
@@ -337,8 +337,8 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
     dryRun?: boolean | undefined;
 }, {
     sampledFiles: {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }[];
     goal: {
@@ -352,16 +352,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     };
     generatedAt: string;
     selectedAgents: string[];
@@ -373,8 +373,8 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
     dryRun?: boolean | undefined;
 }>, {
     sampledFiles: {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }[];
     goal: {
@@ -388,16 +388,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     };
     generatedAt: string;
     selectedAgents: string[];
@@ -409,8 +409,8 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
     dryRun?: boolean | undefined;
 }, {
     sampledFiles: {
-        content: string;
         path: string;
+        content: string;
         purpose: string;
     }[];
     goal: {
@@ -424,16 +424,16 @@ export declare const GenerationContextSchema: z.ZodEffects<z.ZodObject<{
             priority: number;
             reason: string;
         }[];
+        timestamp: string;
+        category: "custom" | "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service";
+        confidence: number;
         description: string;
-        category: "saas-dashboard" | "ecommerce" | "content-platform" | "api-service" | "mobile-app" | "cli-tool" | "data-pipeline" | "auth-service" | "custom";
         technicalRequirements: {
-            description: string;
             category: "database" | "auth" | "payments" | "frontend" | "backend" | "deployment";
+            description: string;
             priority: "required" | "recommended" | "optional";
             suggestedTechnologies: string[];
         }[];
-        timestamp: string;
-        confidence: number;
     };
     generatedAt: string;
     selectedAgents: string[];

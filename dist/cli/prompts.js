@@ -30,14 +30,14 @@ export async function collectProjectGoal() {
             // Build options array with grouped categories
             const allOptions = [
                 // Development
-                { value: 'saas-dashboard', label: 'Web App', hint: 'Dashboards, SaaS, admin panels' },
-                { value: 'api-service', label: 'API / Backend', hint: 'Services, integrations, data' },
-                { value: 'mobile-app', label: 'Mobile App', hint: 'iOS, Android, React Native' },
-                { value: 'ecommerce', label: 'E-Commerce', hint: 'Online stores, carts, payments' },
-                { value: 'cli-tool', label: 'CLI Tool', hint: 'Terminal utilities, automation' },
-                { value: 'data-pipeline', label: 'Data Pipeline', hint: 'ETL, analytics, processing' },
-                { value: 'content-platform', label: 'Content Platform', hint: 'Blogs, CMS, publishing' },
-                { value: 'auth-service', label: 'Auth Service', hint: 'Login, OAuth, identity' },
+                { value: 'saas-dashboard', label: 'Web App', hint: 'Web apps, dashboards, admin tools' },
+                { value: 'api-service', label: 'Server & APIs', hint: 'Services, data, integrations' },
+                { value: 'mobile-app', label: 'Mobile App', hint: 'iOS, Android, cross-platform apps' },
+                { value: 'ecommerce', label: 'E-Commerce', hint: 'Stores, shopping carts, checkout flows' },
+                { value: 'cli-tool', label: 'Command-Line Tool', hint: 'Command-line tools, automation scripts' },
+                { value: 'data-pipeline', label: 'Data Processing', hint: 'Data workflows, analytics, automation' },
+                { value: 'content-platform', label: 'Content Platform', hint: 'Blogs, CMS, content sites' },
+                { value: 'auth-service', label: 'Authentication', hint: 'Login, user accounts, security' },
                 // Business & Strategy
                 { value: 'business-plan', label: 'Business Plan', hint: 'Strategy, financials, pitch decks' },
                 { value: 'marketing-campaign', label: 'Marketing', hint: 'Campaigns, ads, growth strategy' },
@@ -116,9 +116,9 @@ export async function confirmSelections(recommendations) {
     })
         .join('\n');
     p.note(agentLines, 'Recommended Agents');
-    console.log(pc.dim('\n  Agents are AI specialists — each one is trained with proven methods from industry experts.\n'));
+    console.log(pc.dim('\n  Agents are AI specialists trained with industry-proven methods.\n  Each one brings deep expertise in a specific area.\n'));
     const agents = await p.multiselect({
-        message: `Which specialists should help you? ${pc.dim('(Space to select)')}`,
+        message: `Pick your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
         options: recommendations.agents.map(agent => {
             const expert = AGENT_EXPERTS[agent.name];
             const expertHint = expert ? `${expert.domain} (${expert.expert})` : agent.reasons[0];
@@ -140,9 +140,9 @@ export async function confirmSelections(recommendations) {
         .slice(0, 5)
         .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
         .join('\n'), 'Recommended Skills');
-    console.log(pc.dim('\n  Skills give your team deep knowledge about specific technologies and frameworks.\n'));
+    console.log(pc.dim('\n  Skills are knowledge packs — they teach your AI team about specific tools and frameworks.\n'));
     const skills = await p.multiselect({
-        message: `What expertise should your team have? ${pc.dim('(Space to select)')}`,
+        message: `Add skills to your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
         options: recommendations.skills.map(skill => ({
             value: skill.name,
             label: skill.name,
@@ -238,11 +238,11 @@ export async function collectNewProjectSpec() {
         stack: () => p.select({
             message: 'What tools or platform will you work with?',
             options: [
-                { value: 'nextjs', label: 'Next.js', hint: 'Full-stack React with SSR' },
+                { value: 'nextjs', label: 'Next.js', hint: 'Full-stack React framework' },
                 { value: 'react-node', label: 'React + Node.js', hint: 'Separate frontend/backend' },
                 { value: 'python-fastapi', label: 'Python + FastAPI', hint: 'Python API backend' },
                 { value: 'vue-node', label: 'Vue + Node.js', hint: 'Vue frontend, Node backend' },
-                { value: 'other', label: 'Other / Not sure yet', hint: 'We will figure it out together' }
+                { value: 'other', label: 'Other / Not sure yet', hint: 'We\'ll help you figure out the best setup' }
             ],
             initialValue: 'nextjs'
         }),
@@ -262,7 +262,7 @@ export async function collectNewProjectSpec() {
             return p.multiselect({
                 message: `What capabilities do you need? ${pc.dim('(Space to select)')}`,
                 options: [
-                    { value: 'auth', label: 'User accounts', hint: 'Login, signup, OAuth' },
+                    { value: 'auth', label: 'User accounts', hint: 'Login, signup, social sign-in' },
                     { value: 'database', label: 'Data storage', hint: 'Database with ORM' },
                     { value: 'api', label: 'Integrations', hint: 'Third-party APIs and services' },
                     { value: 'payments', label: 'Payments', hint: 'Stripe, subscriptions' },
@@ -352,11 +352,11 @@ function getCategoryLabel(category) {
         'saas-dashboard': 'Web App',
         'ecommerce': 'E-Commerce',
         'content-platform': 'Content Platform',
-        'api-service': 'API / Backend',
+        'api-service': 'Server & APIs',
         'mobile-app': 'Mobile App',
-        'cli-tool': 'CLI Tool',
-        'data-pipeline': 'Data Pipeline',
-        'auth-service': 'Auth Service',
+        'cli-tool': 'Command-Line Tool',
+        'data-pipeline': 'Data Processing',
+        'auth-service': 'Authentication',
         // Business & Strategy
         'business-plan': 'Business Plan',
         'marketing-campaign': 'Marketing',

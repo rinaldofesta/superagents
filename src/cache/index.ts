@@ -13,6 +13,7 @@ import fs from 'fs-extra';
 
 // Internal modules
 import { log } from '../utils/logger.js';
+import { CacheEntryMetaSchema, CodebaseAnalysisSchema, GenerationCacheMetaSchema } from '../schemas/index.js';
 
 // Type imports
 import type { CodebaseAnalysis } from '../types/codebase.js';
@@ -172,7 +173,22 @@ export class CacheManager {
 
     if (await fs.pathExists(cacheFile)) {
       try {
-        const entry: CacheEntry<CodebaseAnalysis> = await fs.readJson(cacheFile);
+        const raw = await fs.readJson(cacheFile);
+
+        // Validate cache structure
+        const metaResult = CacheEntryMetaSchema.safeParse(raw);
+        if (!metaResult.success) {
+          log.debug('Cache validation failed (metadata)');
+          return null;
+        }
+
+        const dataResult = CodebaseAnalysisSchema.safeParse(raw.data);
+        if (!dataResult.success) {
+          log.debug('Cache validation failed (analysis data)');
+          return null;
+        }
+
+        const entry = raw as CacheEntry<CodebaseAnalysis>;
 
         // Check version compatibility
         if (entry.version !== CACHE_VERSION) {
@@ -240,7 +256,16 @@ export class CacheManager {
 
     if ((await fs.pathExists(cacheFile)) && (await fs.pathExists(metaFile))) {
       try {
-        const entry: CacheEntry<null> = await fs.readJson(metaFile);
+        const raw = await fs.readJson(metaFile);
+
+        // Validate cache metadata
+        const metaResult = GenerationCacheMetaSchema.safeParse(raw);
+        if (!metaResult.success) {
+          log.debug('Generation cache validation failed');
+          return null;
+        }
+
+        const entry = raw as CacheEntry<null>;
 
         // Check version compatibility
         if (entry.version !== CACHE_VERSION) {

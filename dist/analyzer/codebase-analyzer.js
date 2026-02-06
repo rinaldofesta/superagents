@@ -33,14 +33,14 @@ export class CodebaseAnalyzer {
         // Load user-defined ignore patterns from .superagentsignore (if present)
         const userIgnorePatterns = await this.loadIgnorePatterns();
         // Run analysis in parallel for performance
-        const [projectType, framework, hasPackageJson, hasTsConfig, monorepo] = await Promise.all([
+        const [projectType, framework, hasPackageJson, primaryLanguage, monorepo] = await Promise.all([
             this.detectProjectType(),
             this.detectFramework(),
             fs.pathExists(path.join(this.projectRoot, 'package.json')),
-            fs.pathExists(path.join(this.projectRoot, 'tsconfig.json')),
+            this.detectPrimaryLanguage(userIgnorePatterns),
             this.detectMonorepo()
         ]);
-        const language = hasTsConfig ? 'typescript' : 'javascript';
+        const language = primaryLanguage;
         // Get dependencies if package.json exists
         const dependencies = hasPackageJson
             ? await this.getDependencies()
@@ -102,8 +102,52 @@ export class CodebaseAnalyzer {
     buildIgnorePatterns(userPatterns) {
         return [...DEFAULT_IGNORE_PATTERNS, ...userPatterns];
     }
+    async detectPrimaryLanguage(userIgnorePatterns = []) {
+        const extensionToLanguage = {
+            ts: 'typescript',
+            tsx: 'typescript',
+            js: 'javascript',
+            jsx: 'javascript',
+            py: 'python',
+            go: 'go',
+            rs: 'rust',
+            java: 'java',
+            cs: 'csharp',
+            php: 'php',
+            rb: 'ruby'
+        };
+        try {
+            const codeFiles = await glob('**/*.{ts,tsx,js,jsx,py,go,rs,java,cs,php,rb}', {
+                cwd: this.projectRoot,
+                ignore: this.buildIgnorePatterns(userIgnorePatterns),
+                nodir: true
+            });
+            const counts = new Map();
+            for (const file of codeFiles) {
+                const ext = file.split('.').pop() || '';
+                const lang = extensionToLanguage[ext];
+                if (lang) {
+                    counts.set(lang, (counts.get(lang) || 0) + 1);
+                }
+            }
+            if (counts.size === 0)
+                return null;
+            let maxLang = null;
+            let maxCount = 0;
+            for (const [lang, count] of counts) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    maxLang = lang;
+                }
+            }
+            return maxLang;
+        }
+        catch {
+            return null;
+        }
+    }
     async detectProjectType() {
-        // Check for Next.js
+        // Check for Next.js config files
         const nextConfigFiles = [
             'next.config.js',
             'next.config.mjs',
@@ -114,7 +158,15 @@ export class CodebaseAnalyzer {
                 return 'nextjs';
             }
         }
-        // Check package.json for framework dependencies
+        // Check for Angular config
+        if (await fs.pathExists(path.join(this.projectRoot, 'angular.json'))) {
+            return 'angular';
+        }
+        // Check for Svelte config
+        if (await fs.pathExists(path.join(this.projectRoot, 'svelte.config.js'))) {
+            return 'svelte';
+        }
+        // Check package.json for JS framework dependencies
         const pkgPath = path.join(this.projectRoot, 'package.json');
         if (await fs.pathExists(pkgPath)) {
             const pkg = await fs.readJson(pkgPath);
@@ -125,44 +177,161 @@ export class CodebaseAnalyzer {
                 return 'react';
             if (deps['vue'])
                 return 'vue';
+            if (deps['@angular/core'])
+                return 'angular';
+            if (deps['svelte'])
+                return 'svelte';
             if (deps['express'] || deps['fastify'])
                 return 'node';
         }
-        // Check for other project types
-        if (await fs.pathExists(path.join(this.projectRoot, 'requirements.txt'))) {
+        // Python (requirements.txt or pyproject.toml)
+        if (await fs.pathExists(path.join(this.projectRoot, 'requirements.txt')) ||
+            await fs.pathExists(path.join(this.projectRoot, 'pyproject.toml'))) {
             return 'python';
         }
+        // Go
         if (await fs.pathExists(path.join(this.projectRoot, 'go.mod'))) {
             return 'go';
         }
+        // Rust
         if (await fs.pathExists(path.join(this.projectRoot, 'Cargo.toml'))) {
             return 'rust';
+        }
+        // Java (pom.xml or build.gradle)
+        if (await fs.pathExists(path.join(this.projectRoot, 'pom.xml')) ||
+            await fs.pathExists(path.join(this.projectRoot, 'build.gradle'))) {
+            return 'java';
+        }
+        // PHP (composer.json)
+        if (await fs.pathExists(path.join(this.projectRoot, 'composer.json'))) {
+            return 'php';
+        }
+        // Ruby (Gemfile)
+        if (await fs.pathExists(path.join(this.projectRoot, 'Gemfile'))) {
+            return 'ruby';
+        }
+        // C# (*.csproj or *.sln)
+        try {
+            const csharpFiles = await glob('*.{csproj,sln}', {
+                cwd: this.projectRoot,
+                nodir: true
+            });
+            if (csharpFiles.length > 0) {
+                return 'csharp';
+            }
+        }
+        catch {
+            // Ignore glob errors
         }
         return 'unknown';
     }
     async detectFramework() {
+        // Check JS frameworks via package.json
         const pkgPath = path.join(this.projectRoot, 'package.json');
-        if (!(await fs.pathExists(pkgPath))) {
-            return null;
+        if (await fs.pathExists(pkgPath)) {
+            const pkg = await fs.readJson(pkgPath);
+            const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+            if (deps['next'])
+                return 'nextjs';
+            if (deps['@nuxt/core'])
+                return 'nuxtjs';
+            if (deps['vue'])
+                return 'vue';
+            if (deps['@angular/core'])
+                return 'angular';
+            if (deps['svelte'])
+                return 'svelte';
+            if (deps['express'])
+                return 'express';
+            if (deps['fastify'])
+                return 'fastify';
+            if (deps['@nestjs/core'])
+                return 'nestjs';
         }
-        const pkg = await fs.readJson(pkgPath);
-        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-        if (deps['next'])
-            return 'nextjs';
-        if (deps['@nuxt/core'])
-            return 'nuxtjs';
-        if (deps['vue'])
-            return 'vue';
-        if (deps['@angular/core'])
-            return 'angular';
-        if (deps['svelte'])
-            return 'svelte';
-        if (deps['express'])
-            return 'express';
-        if (deps['fastify'])
-            return 'fastify';
-        if (deps['@nestjs/core'])
-            return 'nestjs';
+        // Check Python frameworks (pyproject.toml and requirements.txt)
+        const pythonFramework = await this.detectPythonFramework();
+        if (pythonFramework)
+            return pythonFramework;
+        // Check Java frameworks (pom.xml / build.gradle)
+        const javaFramework = await this.detectJavaFramework();
+        if (javaFramework)
+            return javaFramework;
+        // Check PHP frameworks (composer.json)
+        const phpFramework = await this.detectPhpFramework();
+        if (phpFramework)
+            return phpFramework;
+        // Check Ruby frameworks (Gemfile)
+        const rubyFramework = await this.detectRubyFramework();
+        if (rubyFramework)
+            return rubyFramework;
+        return null;
+    }
+    async detectPythonFramework() {
+        const filesToCheck = ['pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile'];
+        for (const file of filesToCheck) {
+            const filePath = path.join(this.projectRoot, file);
+            try {
+                if (await fs.pathExists(filePath)) {
+                    const content = await fs.readFile(filePath, 'utf-8');
+                    const lower = content.toLowerCase();
+                    if (lower.includes('django'))
+                        return 'django';
+                    if (lower.includes('fastapi'))
+                        return 'fastapi';
+                    if (lower.includes('flask'))
+                        return 'flask';
+                }
+            }
+            catch {
+                // Skip unreadable files
+            }
+        }
+        return null;
+    }
+    async detectJavaFramework() {
+        const filesToCheck = ['pom.xml', 'build.gradle'];
+        for (const file of filesToCheck) {
+            const filePath = path.join(this.projectRoot, file);
+            try {
+                if (await fs.pathExists(filePath)) {
+                    const content = await fs.readFile(filePath, 'utf-8');
+                    if (content.toLowerCase().includes('spring'))
+                        return 'spring';
+                }
+            }
+            catch {
+                // Skip unreadable files
+            }
+        }
+        return null;
+    }
+    async detectPhpFramework() {
+        const composerPath = path.join(this.projectRoot, 'composer.json');
+        try {
+            if (await fs.pathExists(composerPath)) {
+                const composer = await fs.readJson(composerPath);
+                const deps = { ...composer.require, ...composer['require-dev'] };
+                if (deps['laravel/framework'])
+                    return 'laravel';
+            }
+        }
+        catch {
+            // Skip unreadable files
+        }
+        return null;
+    }
+    async detectRubyFramework() {
+        const gemfilePath = path.join(this.projectRoot, 'Gemfile');
+        try {
+            if (await fs.pathExists(gemfilePath)) {
+                const content = await fs.readFile(gemfilePath, 'utf-8');
+                if (content.toLowerCase().includes('rails'))
+                    return 'rails';
+            }
+        }
+        catch {
+            // Skip unreadable files
+        }
         return null;
     }
     async getDependencies() {

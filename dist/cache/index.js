@@ -10,6 +10,7 @@ import path from 'path';
 import fs from 'fs-extra';
 // Internal modules
 import { log } from '../utils/logger.js';
+import { CacheEntryMetaSchema, CodebaseAnalysisSchema, GenerationCacheMetaSchema } from '../schemas/index.js';
 const CACHE_DIR = path.join(os.homedir(), '.superagents', 'cache');
 const CACHE_VERSION = '1'; // Increment when cache format changes
 export class CacheManager {
@@ -128,7 +129,19 @@ export class CacheManager {
         const cacheFile = path.join(this.cacheDir, `analysis-${hash}.json`);
         if (await fs.pathExists(cacheFile)) {
             try {
-                const entry = await fs.readJson(cacheFile);
+                const raw = await fs.readJson(cacheFile);
+                // Validate cache structure
+                const metaResult = CacheEntryMetaSchema.safeParse(raw);
+                if (!metaResult.success) {
+                    log.debug('Cache validation failed (metadata)');
+                    return null;
+                }
+                const dataResult = CodebaseAnalysisSchema.safeParse(raw.data);
+                if (!dataResult.success) {
+                    log.debug('Cache validation failed (analysis data)');
+                    return null;
+                }
+                const entry = raw;
                 // Check version compatibility
                 if (entry.version !== CACHE_VERSION) {
                     log.debug('Cache version mismatch, invalidating');
@@ -185,7 +198,14 @@ export class CacheManager {
         const metaFile = path.join(this.cacheDir, `gen-${hash}.meta.json`);
         if ((await fs.pathExists(cacheFile)) && (await fs.pathExists(metaFile))) {
             try {
-                const entry = await fs.readJson(metaFile);
+                const raw = await fs.readJson(metaFile);
+                // Validate cache metadata
+                const metaResult = GenerationCacheMetaSchema.safeParse(raw);
+                if (!metaResult.success) {
+                    log.debug('Generation cache validation failed');
+                    return null;
+                }
+                const entry = raw;
                 // Check version compatibility
                 if (entry.version !== CACHE_VERSION) {
                     log.debug('Generation cache version mismatch');

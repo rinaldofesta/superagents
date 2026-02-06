@@ -1,235 +1,159 @@
 # SuperAgents
 
-Generate context-aware Claude Code configurations for your project. SuperAgents analyzes your codebase and goals to recommend specialized AI agents with proven software engineering principles built in.
+Build your AI team in 60 seconds. SuperAgents analyzes your project and assembles a squad of expert AI agents — each trained with proven methods from industry leaders.
 
-## Install
+Free. Open source. Works with any Claude subscription.
+
+<!-- TODO: Add terminal screenshot -->
+
+## Quick Start
+
+**Prerequisites:** Node.js 20+ and a [Claude subscription](https://claude.ai/pricing) (Pro, Max, or Teams) or an [Anthropic API key](https://console.anthropic.com/).
+
+```bash
+# Install
+npm install -g superagents
+
+# Run in your project
+cd your-project
+superagents
+```
+
+Or install with the one-line script:
 
 ```bash
 curl -fsSL https://superagents.playnew.com/install.sh | bash
 ```
 
-Requires Node.js 20+. After installation, restart your terminal or run `source ~/.zshrc` (zsh) or `source ~/.bashrc` (bash).
-
-Alternatively, install via npm:
-
-```bash
-npm install -g superagents
-```
-
-## Quick Start
-
-Navigate to your project directory and run:
-
-```bash
-superagents
-```
-
-SuperAgents will:
-1. Analyze your codebase (or guide you through setup for new projects)
-2. Ask what you're building
-3. Recommend agents and skills
-4. Generate a `.claude/` configuration folder
+SuperAgents will scan your project, recommend AI specialists, and create a `.claude/` folder with everything configured.
 
 ## What You Get
 
-```
-project/
-├── CLAUDE.md              # Project context
-└── .claude/
-    ├── settings.json      # Configuration
-    ├── agents/            # Specialized AI agents
-    ├── skills/            # Framework-specific knowledge
-    └── hooks/
-        └── skill-loader.sh
-```
+SuperAgents creates a `.claude/` folder in your project with three things:
 
-Each agent embodies principles from software engineering experts. Each skill contains framework patterns and best practices.
+- **CLAUDE.md** — Your project context. Tells Claude about your codebase, goals, and how things are structured.
+- **Agents** — AI specialists trained with methods from industry experts. You pick which ones you need.
+- **Skills** — Deep knowledge about the technologies you use (React, Python, Docker, etc.)
 
-## Authentication
+### Agents
 
-SuperAgents supports two authentication methods:
+15 expert-backed AI specialists:
 
-| Method | Setup | Use Case |
-|--------|-------|----------|
-| Claude Plan | Select in CLI | Claude Max subscribers |
-| API Key | `export ANTHROPIC_API_KEY=sk-ant-...` | API users |
+| Agent | Built on | Speciality |
+|-------|----------|------------|
+| backend-engineer | Uncle Bob | Clean code & architecture |
+| frontend-specialist | Dan Abramov | React & UI patterns |
+| code-reviewer | Google Engineering | Code quality & review |
+| debugger | Julia Evans | Systematic debugging |
+| testing-specialist | Kent Beck | Test-driven development |
+| security-analyst | OWASP | Security best practices |
+| api-designer | Stripe | API design |
+| database-specialist | Martin Kleppmann | Data systems |
+| devops-specialist | Kelsey Hightower | Infrastructure |
+| performance-optimizer | Addy Osmani | Web performance |
+| architect | Martin Fowler | System design |
+| product-manager | Marty Cagan | Product strategy |
+| docs-writer | Divio | Documentation |
+| copywriter | Paolo Gervasi | Persuasive writing |
+| designer | Sarah Corti | UI/UX design |
 
-## Commands
+### Skills
 
-```bash
-superagents [options]        # Main generation flow
-superagents update           # Update SuperAgents to latest version
-superagents cache --stats    # Show cache statistics
-superagents cache --clear    # Clear cached data
-superagents templates --list # List available templates
-superagents export [output]  # Export config to zip file
-superagents import <source>  # Import config from zip file
-```
+16 technology packs:
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview without API calls |
-| `-v, --verbose` | Show detailed output |
-| `-u, --update` | Update existing config incrementally |
-| `--version` | Show version number |
-| `--help` | Show help |
-
-## Agents
-
-15 specialized agents built on industry-proven principles:
-
-| Agent | Expert Source | Domain |
-|-------|---------------|--------|
-| backend-engineer | Uncle Bob | Clean Architecture & SOLID |
-| frontend-specialist | Dan Abramov | React Patterns |
-| code-reviewer | Google Engineering | Code Review Practices |
-| debugger | Julia Evans | Systematic Debugging |
-| devops-specialist | Kelsey Hightower | Infrastructure Patterns |
-| security-analyst | OWASP Foundation | Security Best Practices |
-| database-specialist | Martin Kleppmann | Data-Intensive Applications |
-| api-designer | Stripe | API Design Principles |
-| testing-specialist | Kent Beck | Test-Driven Development |
-| docs-writer | Divio | Documentation System |
-| performance-optimizer | Addy Osmani | Web Performance |
-| copywriter | Paolo Gervasi | Conversion Copywriting |
-| designer | Sarah Corti | UI/UX Design |
-| architect | Martin Fowler | Enterprise Patterns |
-| product-manager | Marty Cagan | Product Discovery |
-
-All agents include Karpathy's 4 Coding Principles:
-1. Think Before Coding
-2. Simplicity First
-3. Surgical Changes
-4. Goal-Driven Execution
-
-## Skills
-
-16 framework-specific skills:
-
-typescript, nodejs, react, nextjs, vue, tailwind, prisma, drizzle, express, supabase, vitest, graphql, docker, python, fastapi, mcp
-
-Each skill provides framework patterns, common workflows, and documentation queries via Context7 MCP.
+`typescript` · `nodejs` · `react` · `nextjs` · `vue` · `tailwind` · `prisma` · `drizzle` · `express` · `supabase` · `vitest` · `graphql` · `docker` · `python` · `fastapi` · `mcp`
 
 ## How It Works
 
-### New Projects
+1. **Tell SuperAgents what you're building** — describe your project goals in plain language
+2. **It scans your project** — detects languages, frameworks, dependencies, and patterns (or helps you start fresh if it's a new project)
+3. **AI generates customized configurations** — picks the right agents and skills, then creates personalized instructions for each one
+4. **Open Claude Code and start working with your team** — your `.claude/` folder is ready to go
 
-For empty or minimal directories, SuperAgents guides you through 4 questions:
-1. What are you building?
-2. What tech stack?
-3. Primary focus (frontend/backend/fullstack/API)?
-4. Key requirements (auth, payments, database, etc.)?
+## Commands
 
-### Existing Codebases
+| Command | Description |
+|---------|-------------|
+| `superagents` | Generate config for your project |
+| `superagents --dry-run` | Preview without making changes |
+| `superagents --update` | Add or remove agents from existing config |
+| `superagents update` | Update SuperAgents itself |
+| `superagents cache --stats` | Check cache usage |
+| `superagents cache --clear` | Clear cached data |
+| `superagents export config.zip` | Share your config with others |
+| `superagents import config.zip` | Load a shared config |
 
-1. Analyzes your codebase (detects 20+ frameworks)
-2. Asks what you're building
-3. Recommends agents and skills based on goal + codebase
-4. Generates configuration
+## Authentication
 
-SuperAgents detects project types, frameworks, dependencies, and patterns automatically. It understands monorepos (npm/yarn/pnpm workspaces, Lerna, Turborepo, Nx).
+SuperAgents needs access to Claude to generate your configurations. Two options:
 
-## Smart Recommendations
+| Method | Who it's for | Setup |
+|--------|-------------|-------|
+| **Claude subscription** | Claude Pro, Max, or Teams subscribers | Select "Sign in with Claude" when prompted |
+| **API key** | Developers with an Anthropic account | Set `export ANTHROPIC_API_KEY=sk-ant-...` in your terminal |
 
-SuperAgents parses your goal description to detect technologies:
+## Privacy
 
-```
-? What are you building?
-> A multi-tenant platform with FastAPI + React + PostgreSQL
+- All code analysis happens **on your machine**
+- Only small code samples are sent to Claude for generation
+- Secrets, `.env` files, and credentials are never sent
+- Respects your `.gitignore`
+- Create a `.superagentsignore` file to exclude additional paths
 
-Detected: FastAPI, React, PostgreSQL
-Recommending: fastapi, python, react, typescript, prisma
-Agents: backend-engineer, api-designer, frontend-specialist, database-specialist
-```
+<details>
+<summary><strong>For Developers</strong></summary>
 
-Technology keywords include Python (FastAPI, Django, Flask), JavaScript/TypeScript (React, Next.js, Vue, Express, Node.js), databases (PostgreSQL, MySQL, MongoDB, Supabase), ORMs (Prisma, Drizzle), DevOps (Docker, Kubernetes), testing frameworks, and more.
-
-## Custom Templates
-
-Create your own agent and skill templates:
-
-```bash
-# List all templates
-superagents templates --list
-
-# Export built-in template for customization
-superagents templates --export backend-engineer
-
-# Import custom template
-superagents templates --import ./my-agent.md --type agent
-
-# Delete custom template
-superagents templates --delete my-agent --type agent
-```
-
-Custom templates are stored in `~/.superagents/templates/`.
-
-Templates support variable substitution: `{{goal}}`, `{{framework}}`, `{{language}}`, `{{dependencies}}`, `{{model}}`, `{{skills}}`.
-
-## Export and Import
-
-Share configurations with your team:
+### Development Setup
 
 ```bash
-# Export
-superagents export my-project-config.zip
-
-# Preview before importing
-superagents import config.zip --preview
-
-# Import and overwrite
-superagents import config.zip --force
+git clone https://github.com/Play-New/superagents.git
+cd superagents
+npm install
+npm run dev
 ```
 
-## Incremental Updates
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Run in development mode |
+| `npm run build` | Build for production |
+| `npm test` | Run tests |
+| `npm run lint` | Lint code |
+| `npm run type-check` | Type check without emit |
 
-Update existing configurations without regenerating everything:
+### Project Structure
+
+```
+src/
+├── index.ts              # CLI entry point
+├── analyzer/             # Codebase detection and analysis
+├── cli/                  # Interactive prompts and UI
+├── context/              # Agent/skill recommendation engine
+├── generator/            # AI generation orchestration
+├── templates/            # 15 agent + 16 skill templates
+├── types/                # TypeScript type definitions
+├── updater/              # Incremental config updates
+├── utils/                # Auth, logging, concurrency
+└── writer/               # Output file writer
+```
+
+### Contributing
+
+Contributions welcome! See [CLAUDE.md](./CLAUDE.md) for architecture details and coding guidelines.
+
+### Custom Templates
+
+You can create your own agent and skill templates:
 
 ```bash
-superagents --update
+superagents templates --list                            # List all templates
+superagents templates --export backend-engineer         # Export a template to customize
+superagents templates --import ./my-agent.md --type agent  # Add your own template
 ```
 
-Add new agents/skills, remove unused ones, or regenerate `CLAUDE.md`.
+Custom templates are stored in `~/.superagents/templates/` and support variables like `{{goal}}`, `{{framework}}`, `{{language}}`, and `{{dependencies}}`.
 
-## Performance
-
-| Feature | Benefit |
-|---------|---------|
-| Parallel Generation | 3x faster with concurrent API calls |
-| Tiered Models | Uses Haiku for simple tasks (80% cost savings) |
-| Local Templates | 31 built-in templates (no API needed) |
-| Codebase Caching | Skip re-analysis on unchanged projects (24h cache) |
-| Response Caching | Reuse generated content (7-day cache) |
-| Prompt Compression | 40-50% token reduction |
-| Dry-Run Mode | Preview and estimate costs |
-
-Cache location: `~/.superagents/cache/`
-
-## Privacy and Security
-
-- All analysis happens locally
-- Only representative files sent to API
-- Automatically excludes `.env`, credentials, secrets
-- Respects `.gitignore`
-- You control your API key
-
-## Development
-
-```bash
-npm install        # Install dependencies
-npm run dev        # Run in watch mode
-npm run build      # Build for production
-npm test           # Run tests
-npm run type-check # Type check without emit
-npm run lint       # Lint code
-```
+</details>
 
 ## License
 
-MIT
-
-## Contributing
-
-Contributions are welcome. Read [CLAUDE.md](./CLAUDE.md) for project context and guidelines.
+MIT — use it however you want.

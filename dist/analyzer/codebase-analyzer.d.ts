@@ -15,8 +15,13 @@ export declare class CodebaseAnalyzer {
      * Build the full ignore list by merging defaults with user patterns
      */
     private buildIgnorePatterns;
+    private detectPrimaryLanguage;
     private detectProjectType;
     private detectFramework;
+    private detectPythonFramework;
+    private detectJavaFramework;
+    private detectPhpFramework;
+    private detectRubyFramework;
     private getDependencies;
     private getDevDependencies;
     private countFilesAndLines;

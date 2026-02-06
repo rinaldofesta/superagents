@@ -122,7 +122,7 @@ export async function authenticateWithAnthropic() {
         {
             value: 'login',
             label: 'Log in with Claude',
-            hint: 'Easiest option — opens your browser'
+            hint: 'Recommended — sign in with your browser'
         },
         {
             value: 'api-key-prompt',
@@ -136,9 +136,9 @@ export async function authenticateWithAnthropic() {
         }
     ];
     // User-friendly note content (no technical jargon)
-    const noteContent = `${orange('Log in with Claude')} is the easiest way to get started.\n` +
-        `${pc.dim('Works with any Claude subscription (Pro, Max, or Teams).')}\n\n` +
-        `${pc.dim('Already have an API key? Choose "Enter API Key" below.')}`;
+    const noteContent = `${orange('Log in with Claude')} connects your Claude subscription.\n` +
+        `${pc.dim('Works with Pro, Max, or Teams plans.')}\n\n` +
+        `${pc.dim('Developers: you can also use an API key directly.')}`;
     p.note(noteContent, '🔐  Authentication');
     const choice = await p.select({
         message: 'How would you like to sign in?',
@@ -154,7 +154,7 @@ export async function authenticateWithAnthropic() {
         // Install Claude CLI if not present — ask for consent first
         if (!cliInstalled) {
             const consent = await p.confirm({
-                message: 'SuperAgents needs Claude Code. Install it now? (npm install -g @anthropic-ai/claude-code)',
+                message: 'SuperAgents needs a small helper tool (Claude Code). Install it now?',
                 active: 'Yes',
                 inactive: 'No'
             });

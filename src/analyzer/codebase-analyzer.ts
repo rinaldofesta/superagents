@@ -5,7 +5,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { glob } from 'glob';
-import type { CodebaseAnalysis, ProjectType, Framework, SampledFile, MonorepoInfo, MonorepoPackage, MonorepoTool } from '../types/codebase.js';
+import type { CodebaseAnalysis, ProjectType, Framework, ProgrammingLanguage, SampledFile, MonorepoInfo, MonorepoPackage, MonorepoTool } from '../types/codebase.js';
 
 /** Default ignore patterns always applied to glob operations */
 const DEFAULT_IGNORE_PATTERNS = [
@@ -42,17 +42,17 @@ export class CodebaseAnalyzer {
       projectType,
       framework,
       hasPackageJson,
-      hasTsConfig,
+      primaryLanguage,
       monorepo
     ] = await Promise.all([
       this.detectProjectType(),
       this.detectFramework(),
       fs.pathExists(path.join(this.projectRoot, 'package.json')),
-      fs.pathExists(path.join(this.projectRoot, 'tsconfig.json')),
+      this.detectPrimaryLanguage(userIgnorePatterns),
       this.detectMonorepo()
     ]);
 
-    const language = hasTsConfig ? 'typescript' : 'javascript';
+    const language = primaryLanguage;
 
     // Get dependencies if package.json exists
     const dependencies = hasPackageJson
@@ -123,8 +123,56 @@ export class CodebaseAnalyzer {
     return [...DEFAULT_IGNORE_PATTERNS, ...userPatterns];
   }
 
+  private async detectPrimaryLanguage(userIgnorePatterns: string[] = []): Promise<ProgrammingLanguage | null> {
+    const extensionToLanguage: Record<string, ProgrammingLanguage> = {
+      ts: 'typescript',
+      tsx: 'typescript',
+      js: 'javascript',
+      jsx: 'javascript',
+      py: 'python',
+      go: 'go',
+      rs: 'rust',
+      java: 'java',
+      cs: 'csharp',
+      php: 'php',
+      rb: 'ruby'
+    };
+
+    try {
+      const codeFiles = await glob('**/*.{ts,tsx,js,jsx,py,go,rs,java,cs,php,rb}', {
+        cwd: this.projectRoot,
+        ignore: this.buildIgnorePatterns(userIgnorePatterns),
+        nodir: true
+      });
+
+      const counts = new Map<ProgrammingLanguage, number>();
+      for (const file of codeFiles) {
+        const ext = file.split('.').pop() || '';
+        const lang = extensionToLanguage[ext];
+        if (lang) {
+          counts.set(lang, (counts.get(lang) || 0) + 1);
+        }
+      }
+
+      if (counts.size === 0) return null;
+
+      let maxLang: ProgrammingLanguage | null = null;
+      let maxCount = 0;
+      for (const [lang, count] of counts) {
+        if (count > maxCount) {
+          maxCount = count;
+          maxLang = lang;
+        }
+      }
+
+      return maxLang;
+    } catch {
+      return null;
+    }
+  }
+
   private async detectProjectType(): Promise<ProjectType> {
-    // Check for Next.js
+    // Check for Next.js config files
     const nextConfigFiles = [
       'next.config.js',
       'next.config.mjs',
@@ -137,7 +185,17 @@ export class CodebaseAnalyzer {
       }
     }
 
-    // Check package.json for framework dependencies
+    // Check for Angular config
+    if (await fs.pathExists(path.join(this.projectRoot, 'angular.json'))) {
+      return 'angular';
+    }
+
+    // Check for Svelte config
+    if (await fs.pathExists(path.join(this.projectRoot, 'svelte.config.js'))) {
+      return 'svelte';
+    }
+
+    // Check package.json for JS framework dependencies
     const pkgPath = path.join(this.projectRoot, 'package.json');
     if (await fs.pathExists(pkgPath)) {
       const pkg = await fs.readJson(pkgPath);
@@ -146,41 +204,154 @@ export class CodebaseAnalyzer {
       if (deps['next']) return 'nextjs';
       if (deps['react']) return 'react';
       if (deps['vue']) return 'vue';
+      if (deps['@angular/core']) return 'angular';
+      if (deps['svelte']) return 'svelte';
       if (deps['express'] || deps['fastify']) return 'node';
     }
 
-    // Check for other project types
-    if (await fs.pathExists(path.join(this.projectRoot, 'requirements.txt'))) {
+    // Python (requirements.txt or pyproject.toml)
+    if (await fs.pathExists(path.join(this.projectRoot, 'requirements.txt')) ||
+        await fs.pathExists(path.join(this.projectRoot, 'pyproject.toml'))) {
       return 'python';
     }
+
+    // Go
     if (await fs.pathExists(path.join(this.projectRoot, 'go.mod'))) {
       return 'go';
     }
+
+    // Rust
     if (await fs.pathExists(path.join(this.projectRoot, 'Cargo.toml'))) {
       return 'rust';
+    }
+
+    // Java (pom.xml or build.gradle)
+    if (await fs.pathExists(path.join(this.projectRoot, 'pom.xml')) ||
+        await fs.pathExists(path.join(this.projectRoot, 'build.gradle'))) {
+      return 'java';
+    }
+
+    // PHP (composer.json)
+    if (await fs.pathExists(path.join(this.projectRoot, 'composer.json'))) {
+      return 'php';
+    }
+
+    // Ruby (Gemfile)
+    if (await fs.pathExists(path.join(this.projectRoot, 'Gemfile'))) {
+      return 'ruby';
+    }
+
+    // C# (*.csproj or *.sln)
+    try {
+      const csharpFiles = await glob('*.{csproj,sln}', {
+        cwd: this.projectRoot,
+        nodir: true
+      });
+      if (csharpFiles.length > 0) {
+        return 'csharp';
+      }
+    } catch {
+      // Ignore glob errors
     }
 
     return 'unknown';
   }
 
   private async detectFramework(): Promise<Framework | null> {
+    // Check JS frameworks via package.json
     const pkgPath = path.join(this.projectRoot, 'package.json');
-    if (!(await fs.pathExists(pkgPath))) {
-      return null;
+    if (await fs.pathExists(pkgPath)) {
+      const pkg = await fs.readJson(pkgPath);
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+      if (deps['next']) return 'nextjs';
+      if (deps['@nuxt/core']) return 'nuxtjs';
+      if (deps['vue']) return 'vue';
+      if (deps['@angular/core']) return 'angular';
+      if (deps['svelte']) return 'svelte';
+      if (deps['express']) return 'express';
+      if (deps['fastify']) return 'fastify';
+      if (deps['@nestjs/core']) return 'nestjs';
     }
 
-    const pkg = await fs.readJson(pkgPath);
-    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    // Check Python frameworks (pyproject.toml and requirements.txt)
+    const pythonFramework = await this.detectPythonFramework();
+    if (pythonFramework) return pythonFramework;
 
-    if (deps['next']) return 'nextjs';
-    if (deps['@nuxt/core']) return 'nuxtjs';
-    if (deps['vue']) return 'vue';
-    if (deps['@angular/core']) return 'angular';
-    if (deps['svelte']) return 'svelte';
-    if (deps['express']) return 'express';
-    if (deps['fastify']) return 'fastify';
-    if (deps['@nestjs/core']) return 'nestjs';
+    // Check Java frameworks (pom.xml / build.gradle)
+    const javaFramework = await this.detectJavaFramework();
+    if (javaFramework) return javaFramework;
 
+    // Check PHP frameworks (composer.json)
+    const phpFramework = await this.detectPhpFramework();
+    if (phpFramework) return phpFramework;
+
+    // Check Ruby frameworks (Gemfile)
+    const rubyFramework = await this.detectRubyFramework();
+    if (rubyFramework) return rubyFramework;
+
+    return null;
+  }
+
+  private async detectPythonFramework(): Promise<Framework | null> {
+    const filesToCheck = ['pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile'];
+    for (const file of filesToCheck) {
+      const filePath = path.join(this.projectRoot, file);
+      try {
+        if (await fs.pathExists(filePath)) {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const lower = content.toLowerCase();
+          if (lower.includes('django')) return 'django';
+          if (lower.includes('fastapi')) return 'fastapi';
+          if (lower.includes('flask')) return 'flask';
+        }
+      } catch {
+        // Skip unreadable files
+      }
+    }
+    return null;
+  }
+
+  private async detectJavaFramework(): Promise<Framework | null> {
+    const filesToCheck = ['pom.xml', 'build.gradle'];
+    for (const file of filesToCheck) {
+      const filePath = path.join(this.projectRoot, file);
+      try {
+        if (await fs.pathExists(filePath)) {
+          const content = await fs.readFile(filePath, 'utf-8');
+          if (content.toLowerCase().includes('spring')) return 'spring';
+        }
+      } catch {
+        // Skip unreadable files
+      }
+    }
+    return null;
+  }
+
+  private async detectPhpFramework(): Promise<Framework | null> {
+    const composerPath = path.join(this.projectRoot, 'composer.json');
+    try {
+      if (await fs.pathExists(composerPath)) {
+        const composer = await fs.readJson(composerPath);
+        const deps = { ...composer.require, ...composer['require-dev'] };
+        if (deps['laravel/framework']) return 'laravel';
+      }
+    } catch {
+      // Skip unreadable files
+    }
+    return null;
+  }
+
+  private async detectRubyFramework(): Promise<Framework | null> {
+    const gemfilePath = path.join(this.projectRoot, 'Gemfile');
+    try {
+      if (await fs.pathExists(gemfilePath)) {
+        const content = await fs.readFile(gemfilePath, 'utf-8');
+        if (content.toLowerCase().includes('rails')) return 'rails';
+      }
+    } catch {
+      // Skip unreadable files
+    }
     return null;
   }
 
