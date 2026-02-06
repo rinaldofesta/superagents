@@ -90,7 +90,11 @@ export async function collectProjectGoal(): Promise<{ description: string; categ
   };
 }
 
-export async function selectModel(): Promise<'opus' | 'sonnet'> {
+export async function selectModel(showPicker?: boolean): Promise<'opus' | 'sonnet'> {
+  if (!showPicker) {
+    return 'sonnet';
+  }
+
   const result = await p.group({
     model: () => p.select<{ value: 'opus' | 'sonnet'; label: string; hint: string }[], 'opus' | 'sonnet'>({
       message: 'Choose generation quality',
@@ -137,6 +141,8 @@ export async function confirmSelections(recommendations: Recommendations): Promi
     'Recommended Agents'
   );
 
+  console.log(pc.dim('\n  Agents are AI specialists — each one is trained with proven methods from industry experts.\n'));
+
   const agents = await p.multiselect({
     message: `Which specialists should help you? ${pc.dim('(Space to select)')}`,
     options: recommendations.agents.map(agent => {
@@ -165,6 +171,8 @@ export async function confirmSelections(recommendations: Recommendations): Promi
       .join('\n'),
     'Recommended Skills'
   );
+
+  console.log(pc.dim('\n  Skills give your team deep knowledge about specific technologies and frameworks.\n'));
 
   const skills = await p.multiselect({
     message: `What expertise should your team have? ${pc.dim('(Space to select)')}`,

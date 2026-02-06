@@ -163,7 +163,8 @@ program
         // Step 1: AUTHENTICATION FIRST (skip in dry-run)
         let auth = { method: 'api-key', apiKey: undefined };
         if (!isDryRun) {
-            console.log(pc.dim('\n  Welcome! Let\'s set up your AI team.\n'));
+            console.log(pc.dim('\n  SuperAgents creates an AI team customized for your project.'));
+            console.log(pc.dim('  Sign in to get started \u2014 it only takes a minute.\n'));
             auth = await authenticateWithAnthropic();
             log.debug(`Auth method: ${auth.method}`);
         }

@@ -8,7 +8,7 @@ export declare function collectProjectGoal(): Promise<{
     description: string;
     category: GoalCategory;
 }>;
-export declare function selectModel(): Promise<'opus' | 'sonnet'>;
+export declare function selectModel(showPicker?: boolean): Promise<'opus' | 'sonnet'>;
 export declare function confirmSelections(recommendations: Recommendations): Promise<{
     agents: string[];
     skills: string[];

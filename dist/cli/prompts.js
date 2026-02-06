@@ -76,7 +76,10 @@ export async function collectProjectGoal() {
         category: answers.category
     };
 }
-export async function selectModel() {
+export async function selectModel(showPicker) {
+    if (!showPicker) {
+        return 'sonnet';
+    }
     const result = await p.group({
         model: () => p.select({
             message: 'Choose generation quality',
@@ -113,6 +116,7 @@ export async function confirmSelections(recommendations) {
     })
         .join('\n');
     p.note(agentLines, 'Recommended Agents');
+    console.log(pc.dim('\n  Agents are AI specialists — each one is trained with proven methods from industry experts.\n'));
     const agents = await p.multiselect({
         message: `Which specialists should help you? ${pc.dim('(Space to select)')}`,
         options: recommendations.agents.map(agent => {
@@ -136,6 +140,7 @@ export async function confirmSelections(recommendations) {
         .slice(0, 5)
         .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
         .join('\n'), 'Recommended Skills');
+    console.log(pc.dim('\n  Skills give your team deep knowledge about specific technologies and frameworks.\n'));
     const skills = await p.multiselect({
         message: `What expertise should your team have? ${pc.dim('(Space to select)')}`,
         options: recommendations.skills.map(skill => ({

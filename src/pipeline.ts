@@ -87,7 +87,7 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   log.debug(`Category: ${goal.category}`);
 
   // Step 3b: Select AI model
-  const model = await selectModel();
+  const model = await selectModel(isVerbose);
   log.debug(`Selected model: ${model}`);
 
   // Initialize cache
