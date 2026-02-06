@@ -41,7 +41,8 @@ const BUNDLED_AGENTS = [
     'mobile-specialist',
     'accessibility-specialist',
     'sre-engineer',
-    'tech-lead'
+    'tech-lead',
+    'cfo'
 ];
 const BUNDLED_SKILLS = [
     'typescript',
@@ -64,7 +65,9 @@ const BUNDLED_SKILLS = [
     'svelte',
     'nestjs',
     'stripe',
-    'playwright'
+    'playwright',
+    'financial-planning',
+    'fundraising'
 ];
 /**
  * Check if a local template exists for the given item

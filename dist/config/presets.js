@@ -265,13 +265,17 @@ export const GOAL_PRESETS = {
     },
     'business-plan': {
         recommendedAgents: [
+            { name: 'cfo', priority: 10, reason: 'Financial strategy and projections' },
             { name: 'product-manager', priority: 10, reason: 'Strategy and market analysis' },
             { name: 'copywriter', priority: 9, reason: 'Compelling narratives and pitches' },
             { name: 'architect', priority: 8, reason: 'Business model structure' },
             { name: 'docs-writer', priority: 8, reason: 'Clear documentation and specs' },
             { name: 'designer', priority: 7, reason: 'Pitch deck visuals' }
         ],
-        recommendedSkills: [],
+        recommendedSkills: [
+            { name: 'financial-planning', priority: 10, reason: 'Financial models and projections' },
+            { name: 'fundraising', priority: 9, reason: 'Pitch decks and investor materials' }
+        ],
         technicalRequirements: []
     },
     'marketing-campaign': {
@@ -279,10 +283,13 @@ export const GOAL_PRESETS = {
             { name: 'copywriter', priority: 10, reason: 'Campaign copy and messaging' },
             { name: 'product-manager', priority: 9, reason: 'Campaign strategy and targeting' },
             { name: 'designer', priority: 9, reason: 'Creative assets and visuals' },
+            { name: 'cfo', priority: 7, reason: 'Marketing budget and ROI analysis' },
             { name: 'docs-writer', priority: 7, reason: 'Campaign briefs and guidelines' },
             { name: 'performance-optimizer', priority: 6, reason: 'Conversion optimization' }
         ],
-        recommendedSkills: [],
+        recommendedSkills: [
+            { name: 'financial-planning', priority: 6, reason: 'Campaign ROI modeling' }
+        ],
         technicalRequirements: []
     },
     'content-creation': {

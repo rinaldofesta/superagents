@@ -82,6 +82,14 @@ export class RecommendationEngine {
         // E2E testing
         'playwright': { skills: ['playwright'], agents: ['testing-specialist'] },
         'cypress': { skills: ['playwright'], agents: ['testing-specialist'] },
+        // Finance & Business
+        'financial': { skills: ['financial-planning'], agents: ['cfo'] },
+        'fundraising': { skills: ['fundraising', 'financial-planning'], agents: ['cfo'] },
+        'investor': { skills: ['fundraising'], agents: ['cfo'] },
+        'pitch deck': { skills: ['fundraising'], agents: ['cfo', 'copywriter'] },
+        'revenue': { skills: ['financial-planning'], agents: ['cfo'] },
+        'pricing': { skills: ['financial-planning'], agents: ['cfo'] },
+        'budget': { skills: ['financial-planning'], agents: ['cfo'] },
         // API
         'graphql': { skills: ['graphql'], agents: ['api-designer'] },
         'rest': { skills: [], agents: ['api-designer'] },

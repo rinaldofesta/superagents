@@ -67,7 +67,8 @@ const BUNDLED_AGENTS = [
   'mobile-specialist',
   'accessibility-specialist',
   'sre-engineer',
-  'tech-lead'
+  'tech-lead',
+  'cfo'
 ];
 
 const BUNDLED_SKILLS = [
@@ -91,7 +92,9 @@ const BUNDLED_SKILLS = [
   'svelte',
   'nestjs',
   'stripe',
-  'playwright'
+  'playwright',
+  'financial-planning',
+  'fundraising'
 ];
 
 /**

@@ -39,7 +39,8 @@ export const AGENT_EXPERTS = {
     'mobile-specialist': { expert: 'React Native Team', domain: 'Cross-Platform Mobile' },
     'accessibility-specialist': { expert: 'Heydon Pickering', domain: 'Inclusive Design Patterns' },
     'sre-engineer': { expert: 'Google SRE', domain: 'Site Reliability Engineering' },
-    'tech-lead': { expert: 'Will Larson', domain: 'Technical Leadership' }
+    'tech-lead': { expert: 'Rinaldo Festa', domain: 'Pragmatic Technical Leadership' },
+    'cfo': { expert: 'Pasquale Tuosto', domain: 'Strategic Finance & Sustainable Growth' }
 };
 export function displayBanner() {
     console.log(orange(BANNER));
