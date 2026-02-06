@@ -35,7 +35,13 @@ const BUNDLED_AGENTS = [
     'copywriter',
     'designer',
     'architect',
-    'product-manager'
+    'product-manager',
+    // Specialist agents
+    'data-engineer',
+    'mobile-specialist',
+    'accessibility-specialist',
+    'sre-engineer',
+    'tech-lead'
 ];
 const BUNDLED_SKILLS = [
     'typescript',
@@ -53,7 +59,12 @@ const BUNDLED_SKILLS = [
     'docker',
     'python',
     'fastapi',
-    'mcp'
+    'mcp',
+    'angular',
+    'svelte',
+    'nestjs',
+    'stripe',
+    'playwright'
 ];
 /**
  * Check if a local template exists for the given item

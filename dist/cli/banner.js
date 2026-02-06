@@ -34,7 +34,12 @@ export const AGENT_EXPERTS = {
     'copywriter': { expert: 'Paolo Gervasi', domain: 'Conversion Copywriting' },
     'designer': { expert: 'Sarah Corti', domain: 'UI/UX Design' },
     'architect': { expert: 'Martin Fowler', domain: 'Enterprise Patterns' },
-    'product-manager': { expert: 'Marty Cagan', domain: 'Product Discovery' }
+    'product-manager': { expert: 'Marty Cagan', domain: 'Product Discovery' },
+    'data-engineer': { expert: 'Joe Reis', domain: 'Data Engineering Fundamentals' },
+    'mobile-specialist': { expert: 'React Native Team', domain: 'Cross-Platform Mobile' },
+    'accessibility-specialist': { expert: 'Heydon Pickering', domain: 'Inclusive Design Patterns' },
+    'sre-engineer': { expert: 'Google SRE', domain: 'Site Reliability Engineering' },
+    'tech-lead': { expert: 'Will Larson', domain: 'Technical Leadership' }
 };
 export function displayBanner() {
     console.log(orange(BANNER));

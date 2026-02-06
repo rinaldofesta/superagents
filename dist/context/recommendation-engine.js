@@ -71,6 +71,17 @@ export class RecommendationEngine {
         // Styling
         'tailwind': { skills: ['tailwind'], agents: ['frontend-specialist'] },
         'tailwindcss': { skills: ['tailwind'], agents: ['frontend-specialist'] },
+        // Additional frameworks
+        'angular': { skills: ['angular', 'typescript'], agents: ['frontend-specialist'] },
+        'svelte': { skills: ['svelte', 'typescript'], agents: ['frontend-specialist'] },
+        'sveltekit': { skills: ['svelte', 'typescript'], agents: ['frontend-specialist'] },
+        'nestjs': { skills: ['nestjs', 'typescript'], agents: ['backend-engineer'] },
+        'nest': { skills: ['nestjs', 'typescript'], agents: ['backend-engineer'] },
+        // Payments
+        'stripe': { skills: ['stripe'], agents: ['backend-engineer', 'security-analyst'] },
+        // E2E testing
+        'playwright': { skills: ['playwright'], agents: ['testing-specialist'] },
+        'cypress': { skills: ['playwright'], agents: ['testing-specialist'] },
         // API
         'graphql': { skills: ['graphql'], agents: ['api-designer'] },
         'rest': { skills: [], agents: ['api-designer'] },

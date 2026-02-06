@@ -14,14 +14,16 @@ export const GOAL_PRESETS: Record<GoalCategory, GoalPreset> = {
       { name: 'code-reviewer', priority: 7, reason: 'Code quality assurance' },
       { name: 'architect', priority: 7, reason: 'System architecture' },
       { name: 'debugger', priority: 6, reason: 'Troubleshooting' },
-      { name: 'product-manager', priority: 6, reason: 'Requirements and prioritization' }
+      { name: 'product-manager', priority: 6, reason: 'Requirements and prioritization' },
+      { name: 'accessibility-specialist', priority: 5, reason: 'Inclusive UI' }
     ],
     recommendedSkills: [
       { name: 'react', priority: 10, reason: 'UI framework' },
       { name: 'nextjs', priority: 10, reason: 'Full-stack framework' },
       { name: 'typescript', priority: 9, reason: 'Type safety' },
       { name: 'tailwind', priority: 9, reason: 'Styling' },
-      { name: 'prisma', priority: 8, reason: 'Database ORM' }
+      { name: 'prisma', priority: 8, reason: 'Database ORM' },
+      { name: 'playwright', priority: 5, reason: 'E2E testing' }
     ],
     technicalRequirements: [
       {
@@ -66,6 +68,7 @@ export const GOAL_PRESETS: Record<GoalCategory, GoalPreset> = {
       { name: 'nextjs', priority: 10, reason: 'E-commerce framework' },
       { name: 'react', priority: 9, reason: 'UI components' },
       { name: 'typescript', priority: 9, reason: 'Type safety for transactions' },
+      { name: 'stripe', priority: 9, reason: 'Payment processing' },
       { name: 'prisma', priority: 8, reason: 'Database ORM' },
       { name: 'tailwind', priority: 8, reason: 'Styling' }
     ],
@@ -130,6 +133,7 @@ export const GOAL_PRESETS: Record<GoalCategory, GoalPreset> = {
       { name: 'architect', priority: 9, reason: 'System architecture' },
       { name: 'database-specialist', priority: 8, reason: 'Data modeling' },
       { name: 'security-analyst', priority: 8, reason: 'API security' },
+      { name: 'sre-engineer', priority: 7, reason: 'API reliability and monitoring' },
       { name: 'docs-writer', priority: 7, reason: 'API documentation' },
       { name: 'testing-specialist', priority: 7, reason: 'API testing' },
       { name: 'code-reviewer', priority: 6, reason: 'Code quality' }
@@ -158,10 +162,12 @@ export const GOAL_PRESETS: Record<GoalCategory, GoalPreset> = {
 
   'mobile-app': {
     recommendedAgents: [
-      { name: 'frontend-specialist', priority: 10, reason: 'Mobile UI development' },
+      { name: 'mobile-specialist', priority: 10, reason: 'Cross-platform mobile development' },
+      { name: 'frontend-specialist', priority: 9, reason: 'Mobile UI development' },
       { name: 'backend-engineer', priority: 8, reason: 'API for mobile app' },
       { name: 'designer', priority: 9, reason: 'Mobile UI/UX design' },
       { name: 'api-designer', priority: 7, reason: 'Mobile API design' },
+      { name: 'accessibility-specialist', priority: 6, reason: 'Mobile accessibility' },
       { name: 'code-reviewer', priority: 7, reason: 'Code quality' },
       { name: 'testing-specialist', priority: 6, reason: 'Mobile testing' }
     ],
@@ -210,10 +216,12 @@ export const GOAL_PRESETS: Record<GoalCategory, GoalPreset> = {
 
   'data-pipeline': {
     recommendedAgents: [
-      { name: 'backend-engineer', priority: 10, reason: 'Data processing logic' },
+      { name: 'data-engineer', priority: 10, reason: 'Data pipeline design and implementation' },
+      { name: 'backend-engineer', priority: 9, reason: 'Data processing logic' },
       { name: 'database-specialist', priority: 10, reason: 'Data modeling and queries' },
       { name: 'architect', priority: 9, reason: 'Pipeline architecture' },
       { name: 'devops-specialist', priority: 8, reason: 'Pipeline deployment' },
+      { name: 'sre-engineer', priority: 7, reason: 'Pipeline reliability and monitoring' },
       { name: 'code-reviewer', priority: 6, reason: 'Code quality' }
     ],
     recommendedSkills: [
