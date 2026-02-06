@@ -8,9 +8,40 @@ import { glob } from 'glob';
 import pc from 'picocolors';
 import { AGENT_EXPERTS } from './banner.js';
 import { orange, bgOrange } from './colors.js';
-export async function collectProjectGoal() {
+export async function collectProjectGoal(codebaseAnalysis) {
     p.intro(bgOrange(pc.black(' SuperAgents ')));
-    // Use p.group for back navigation support
+    // If we have codebase analysis, show what was detected and streamline the flow
+    if (codebaseAnalysis && codebaseAnalysis.projectType !== 'unknown') {
+        const infoLine = formatCodebaseInfo(codebaseAnalysis);
+        p.note(infoLine, 'Your Project');
+        const description = await p.text({
+            message: 'What do you need help with?',
+            placeholder: 'e.g., "Add authentication" or "Improve test coverage"',
+            validate: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Tell us a bit more so we can find the right specialists for you';
+                }
+                if (value.trim().length < 10) {
+                    return 'A few more details will help us match you with the best team';
+                }
+                return undefined;
+            }
+        });
+        if (p.isCancel(description)) {
+            p.cancel('Operation cancelled');
+            process.exit(0);
+        }
+        // Combine codebase-inferred category with text-based detection
+        const codebaseCategory = inferCategoryFromCodebase(codebaseAnalysis);
+        const textCategory = categorizeGoal(description);
+        // Prefer text-based if it gives a specific result, otherwise use codebase
+        const category = textCategory !== 'custom' ? textCategory : codebaseCategory;
+        return {
+            description: description,
+            category
+        };
+    }
+    // Fallback: no codebase analysis or unknown project — full interactive flow
     const answers = await p.group({
         description: () => p.text({
             message: 'What do you want to create or get help with?',
@@ -36,7 +67,7 @@ export async function collectProjectGoal() {
                 { value: 'ecommerce', label: 'E-Commerce', hint: 'Stores, shopping carts, checkout flows' },
                 { value: 'cli-tool', label: 'Command-Line Tool', hint: 'Command-line tools, automation scripts' },
                 { value: 'data-pipeline', label: 'Data Processing', hint: 'Data workflows, analytics, automation' },
-                { value: 'content-platform', label: 'Content Platform', hint: 'Blogs, CMS, content sites' },
+                { value: 'content-platform', label: 'Website', hint: 'Landing pages, blogs, CMS, content sites' },
                 { value: 'auth-service', label: 'Authentication', hint: 'Login, user accounts, security' },
                 // Business & Strategy
                 { value: 'business-plan', label: 'Business Plan', hint: 'Strategy, financials, pitch decks' },
@@ -106,7 +137,45 @@ export async function selectModel(showPicker) {
     return result.model;
 }
 export async function confirmSelections(recommendations) {
-    // Show expert-backed agents recommendation
+    let agents = [];
+    let skills = [];
+    let confirmed = false;
+    while (!confirmed) {
+        if (agents.length === 0) {
+            agents = await pickAgents(recommendations);
+        }
+        if (skills.length === 0) {
+            skills = await pickSkills(recommendations);
+        }
+        // Review summary
+        const summary = `  Agents: ${agents.join(', ')}\n` +
+            `  Skills: ${skills.join(', ')}`;
+        p.note(summary, 'Your Team');
+        const action = await p.select({
+            message: 'Ready to go?',
+            options: [
+                { value: 'confirm', label: 'Looks good', hint: 'Generate configuration' },
+                { value: 'agents', label: 'Change agents', hint: 'Go back to agent selection' },
+                { value: 'skills', label: 'Change skills', hint: 'Go back to skill selection' },
+            ]
+        });
+        if (p.isCancel(action)) {
+            p.cancel('Operation cancelled');
+            process.exit(0);
+        }
+        if (action === 'confirm') {
+            confirmed = true;
+        }
+        else if (action === 'agents') {
+            agents = [];
+        }
+        else if (action === 'skills') {
+            skills = [];
+        }
+    }
+    return { agents, skills };
+}
+async function pickAgents(recommendations) {
     const agentLines = recommendations.agents
         .slice(0, 5)
         .map(a => {
@@ -135,7 +204,9 @@ export async function confirmSelections(recommendations) {
         p.cancel('Operation cancelled');
         process.exit(0);
     }
-    // Show skills recommendation
+    return agents;
+}
+async function pickSkills(recommendations) {
     p.note(recommendations.skills
         .slice(0, 5)
         .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
@@ -155,7 +226,7 @@ export async function confirmSelections(recommendations) {
         p.cancel('Operation cancelled');
         process.exit(0);
     }
-    return { agents, skills };
+    return skills;
 }
 export async function confirmOverwrite(dirName = '.claude') {
     const shouldOverwrite = await p.confirm({
@@ -324,7 +395,7 @@ function categorizeGoal(description) {
         // Development categories
         'saas-dashboard': ['saas', 'dashboard', 'analytics', 'metrics', 'admin', 'panel', 'web app'],
         'ecommerce': ['ecommerce', 'e-commerce', 'shop', 'store', 'marketplace', 'cart', 'checkout'],
-        'content-platform': ['blog', 'cms', 'publishing platform', 'media site'],
+        'content-platform': ['blog', 'cms', 'publishing platform', 'media site', 'landing page', 'landing', 'website', 'homepage', 'web page'],
         'api-service': ['api', 'rest', 'graphql', 'microservice', 'backend', 'service', 'integration'],
         'mobile-app': ['mobile', 'ios', 'android', 'react native', 'flutter', 'phone app'],
         'cli-tool': ['cli', 'command line', 'terminal', 'script', 'automation tool'],
@@ -351,7 +422,7 @@ function getCategoryLabel(category) {
         // Development
         'saas-dashboard': 'Web App',
         'ecommerce': 'E-Commerce',
-        'content-platform': 'Content Platform',
+        'content-platform': 'Website',
         'api-service': 'Server & APIs',
         'mobile-app': 'Mobile App',
         'cli-tool': 'Command-Line Tool',
@@ -367,5 +438,65 @@ function getCategoryLabel(category) {
         'custom': 'Something else'
     };
     return labels[category];
+}
+const DISPLAY_NAMES = {
+    'nextjs': 'Next.js', 'nuxtjs': 'Nuxt.js', 'react': 'React', 'vue': 'Vue',
+    'angular': 'Angular', 'svelte': 'Svelte', 'express': 'Express', 'fastify': 'Fastify',
+    'nestjs': 'NestJS', 'django': 'Django', 'fastapi': 'FastAPI', 'flask': 'Flask',
+    'gin': 'Gin', 'fiber': 'Fiber', 'actix': 'Actix', 'rocket': 'Rocket',
+    'spring': 'Spring', 'laravel': 'Laravel', 'rails': 'Rails',
+    'typescript': 'TypeScript', 'javascript': 'JavaScript', 'python': 'Python',
+    'go': 'Go', 'rust': 'Rust', 'java': 'Java', 'csharp': 'C#',
+    'php': 'PHP', 'ruby': 'Ruby', 'node': 'Node.js',
+};
+function formatCodebaseInfo(analysis) {
+    const parts = [];
+    if (analysis.framework) {
+        parts.push(pc.bold(DISPLAY_NAMES[analysis.framework] || analysis.framework));
+    }
+    else if (analysis.projectType !== 'unknown') {
+        parts.push(pc.bold(DISPLAY_NAMES[analysis.projectType] || analysis.projectType));
+    }
+    if (analysis.language) {
+        parts.push(DISPLAY_NAMES[analysis.language] || analysis.language);
+    }
+    const techLine = parts.length > 0 ? parts.join(' + ') : 'Project detected';
+    const statsLine = `${analysis.totalFiles} files, ${analysis.dependencies.length} dependencies`;
+    return `  ${pc.green('✓')} ${techLine}\n  ${pc.dim(statsLine)}`;
+}
+function inferCategoryFromCodebase(analysis) {
+    const { framework, projectType, dependencies } = analysis;
+    const depNames = new Set(dependencies.map(d => d.name));
+    // E-commerce indicators
+    if (depNames.has('stripe') || depNames.has('@stripe/stripe-js') || depNames.has('@shopify/polaris')) {
+        return 'ecommerce';
+    }
+    // CLI tool indicators
+    if (depNames.has('commander') || depNames.has('yargs') || depNames.has('oclif')) {
+        return 'cli-tool';
+    }
+    // Data pipeline indicators
+    if (depNames.has('bull') || depNames.has('bullmq') || depNames.has('kafkajs')) {
+        return 'data-pipeline';
+    }
+    // Framework-based detection
+    const frontendFrameworks = ['nextjs', 'nuxtjs', 'react', 'vue', 'angular', 'svelte'];
+    const backendFrameworks = ['express', 'fastify', 'nestjs', 'django', 'fastapi', 'flask', 'gin', 'fiber', 'actix', 'rocket', 'spring'];
+    if (framework && frontendFrameworks.includes(framework))
+        return 'saas-dashboard';
+    if (framework && backendFrameworks.includes(framework))
+        return 'api-service';
+    if (framework === 'laravel' || framework === 'rails')
+        return 'content-platform';
+    // Project type fallback
+    if (['react', 'vue', 'angular', 'svelte', 'nextjs'].includes(projectType))
+        return 'saas-dashboard';
+    if (['node', 'python', 'go', 'java', 'csharp'].includes(projectType))
+        return 'api-service';
+    if (['php', 'ruby'].includes(projectType))
+        return 'content-platform';
+    if (projectType === 'rust')
+        return 'cli-tool';
+    return 'custom';
 }
 //# sourceMappingURL=prompts.js.map

@@ -1,10 +1,10 @@
 /**
  * Interactive prompts using @clack/prompts
  */
-import type { MonorepoPackage } from '../types/codebase.js';
+import type { CodebaseAnalysis, MonorepoPackage } from '../types/codebase.js';
 import type { Recommendations } from '../types/config.js';
 import type { GoalCategory, ProjectMode, ProjectSpec, ProjectRequirement } from '../types/goal.js';
-export declare function collectProjectGoal(): Promise<{
+export declare function collectProjectGoal(codebaseAnalysis?: CodebaseAnalysis): Promise<{
     description: string;
     category: GoalCategory;
 }>;

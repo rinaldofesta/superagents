@@ -52,11 +52,18 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   const projectMode: ProjectMode = await detectProjectMode(projectRoot);
   log.debug(`Project mode: ${projectMode}`);
 
-  // Step 3: Collect project goal based on mode
+  // Initialize cache early (needed for codebase analysis caching)
+  await cache.init();
+
+  // Step 3: Collect goal and analyze codebase
+  // For existing projects: analyze first → show detected info → ask focused question
+  // For new projects: guided spec gathering → then analyze
+  const spinner = p.spinner();
+  let codebaseAnalysis: CodebaseAnalysis;
   let goal: ProjectGoal;
 
   if (projectMode === 'new') {
-    // New project: guided spec gathering
+    // New project: collect goal first, then analyze
     console.log(pc.dim('  Detected: New/minimal project\n'));
     const spec = await collectNewProjectSpec();
     const goalData = specToGoal(spec);
@@ -69,10 +76,45 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
       timestamp: new Date().toISOString(),
       confidence: 1.0
     };
+
+    spinner.start('Scanning your project...');
+    const cachedAnalysis = await cache.getCachedAnalysis(projectRoot);
+    if (cachedAnalysis) {
+      codebaseAnalysis = cachedAnalysis;
+      spinner.stop(pc.green('✓') + ' Project scanned ' + pc.dim('(cached)'));
+    } else {
+      const analyzer = new CodebaseAnalyzer(projectRoot);
+      codebaseAnalysis = await analyzer.analyze();
+      await cache.setCachedAnalysis(projectRoot, codebaseAnalysis);
+      spinner.stop(pc.green('✓') + ' Project scanned');
+    }
   } else {
-    // Existing codebase: standard flow
-    console.log(pc.dim('  Detected: Existing codebase\n'));
-    const goalData = await collectProjectGoal();
+    // Existing project: analyze first so prompts can use the context
+    spinner.start('Scanning your project...');
+    const cachedAnalysis = await cache.getCachedAnalysis(projectRoot);
+    if (cachedAnalysis) {
+      codebaseAnalysis = cachedAnalysis;
+      spinner.stop(pc.green('✓') + ' Project scanned ' + pc.dim('(cached)'));
+      log.verbose('Using cached codebase analysis');
+    } else {
+      const analyzer = new CodebaseAnalyzer(projectRoot);
+      codebaseAnalysis = await analyzer.analyze();
+      await cache.setCachedAnalysis(projectRoot, codebaseAnalysis);
+      spinner.stop(pc.green('✓') + ' Project scanned');
+      log.verbose('Codebase analysis cached for future runs');
+    }
+
+    log.section('Codebase Analysis');
+    log.table({
+      'Project Type': codebaseAnalysis.projectType,
+      'Language': codebaseAnalysis.language || 'Unknown',
+      'Framework': codebaseAnalysis.framework || 'None',
+      'Total Files': codebaseAnalysis.totalFiles,
+      'Dependencies': codebaseAnalysis.dependencies.length
+    });
+
+    // Collect goal with codebase context — auto-detects category, skips redundant questions
+    const goalData = await collectProjectGoal(codebaseAnalysis);
     goal = {
       ...goalData,
       technicalRequirements: [],
@@ -86,40 +128,9 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   log.debug(`Goal: ${goal.description}`);
   log.debug(`Category: ${goal.category}`);
 
-  // Step 3b: Select AI model
+  // Step 4b: Select AI model
   const model = await selectModel(isVerbose);
   log.debug(`Selected model: ${model}`);
-
-  // Initialize cache
-  await cache.init();
-
-  // Step 4: Analyze codebase (with caching)
-  const spinner = p.spinner();
-  spinner.start('Scanning your project...');
-
-  let codebaseAnalysis: CodebaseAnalysis;
-  const cachedAnalysis = await cache.getCachedAnalysis(projectRoot);
-
-  if (cachedAnalysis) {
-    codebaseAnalysis = cachedAnalysis;
-    spinner.stop(pc.green('✓') + ' Project scanned ' + pc.dim('(cached)'));
-    log.verbose('Using cached codebase analysis');
-  } else {
-    const analyzer = new CodebaseAnalyzer(projectRoot);
-    codebaseAnalysis = await analyzer.analyze();
-    await cache.setCachedAnalysis(projectRoot, codebaseAnalysis);
-    spinner.stop(pc.green('✓') + ' Project scanned');
-    log.verbose('Codebase analysis cached for future runs');
-  }
-
-  log.section('Codebase Analysis');
-  log.table({
-    'Project Type': codebaseAnalysis.projectType,
-    'Language': codebaseAnalysis.language || 'Unknown',
-    'Framework': codebaseAnalysis.framework || 'None',
-    'Total Files': codebaseAnalysis.totalFiles,
-    'Dependencies': codebaseAnalysis.dependencies.length
-  });
 
   // Step 5: Generate recommendations
   spinner.start('Finding the best agents for your project...');
