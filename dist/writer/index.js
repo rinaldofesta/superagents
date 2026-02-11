@@ -22,6 +22,7 @@ export class OutputWriter {
         // Create directory structure
         await fs.ensureDir(path.join(claudeDir, 'agents'));
         await fs.ensureDir(path.join(claudeDir, 'skills'));
+        await fs.ensureDir(path.join(claudeDir, 'commands'));
         await fs.ensureDir(path.join(this.projectRoot, 'docs'));
         // Prepare all write operations for parallel execution
         const writeOperations = [];
@@ -34,6 +35,10 @@ export class OutputWriter {
         // Write skills in parallel
         for (const skill of outputs.skills) {
             writeOperations.push(fs.writeFile(path.join(claudeDir, 'skills', skill.filename), skill.content, 'utf-8'));
+        }
+        // Write commands in parallel
+        for (const cmd of outputs.commands) {
+            writeOperations.push(fs.writeFile(path.join(claudeDir, 'commands', cmd.filename), cmd.content, 'utf-8'));
         }
         // Write settings.json
         writeOperations.push(fs.writeFile(path.join(claudeDir, 'settings.json'), JSON.stringify(outputs.settings, null, 2), 'utf-8'));
@@ -48,9 +53,10 @@ export class OutputWriter {
             await fs.writeFile(path.join(docDir, doc.filename), doc.content, 'utf-8');
         }
         return {
-            totalFiles: outputs.agents.length + outputs.skills.length + outputs.docs.length + 2,
+            totalFiles: outputs.agents.length + outputs.skills.length + outputs.commands.length + outputs.docs.length + 2,
             agents: outputs.agents.map(a => a.agentName),
             skills: outputs.skills.map(s => s.skillName),
+            commands: outputs.commands.map(c => c.commandName),
             docs: outputs.docs.map(d => d.filename),
             projectRoot: this.projectRoot,
             claudeDir

@@ -13,7 +13,7 @@ import pc from 'picocolors';
 import { CodebaseAnalyzer } from './analyzer/codebase-analyzer.js';
 import { cache } from './cache/index.js';
 import { displayDryRunPreview } from './cli/dry-run.js';
-import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, confirmSelections } from './cli/prompts.js';
+import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, selectTeam } from './cli/prompts.js';
 import { RecommendationEngine } from './context/recommendation-engine.js';
 import { AIGenerator } from './generator/index.js';
 import { log } from './utils/logger.js';
@@ -34,6 +34,8 @@ export interface PipelineOptions {
 
 export interface PipelineResult {
   summary: WriteSummary;
+  codebaseAnalysis: CodebaseAnalysis;
+  projectMode: ProjectMode;
 }
 
 /**
@@ -138,24 +140,28 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   const recommendationEngine = new RecommendationEngine();
   const recommendations = await recommendationEngine.recommend(goal, codebaseAnalysis);
 
-  spinner.stop(pc.green('✓') + ' Found ' + recommendations.defaultAgents.length + ' recommended agents');
+  const totalRelevant = recommendations.agents.filter(a => a.score > 0).length;
+  spinner.stop(
+    pc.green('✓') + ` Analyzed ${totalRelevant} agents, ${recommendations.defaultAgents.length} recommended`
+  );
 
   log.section('Recommendations');
   log.verbose(`Agents: ${recommendations.agents.map(a => `${a.name}(${a.score})`).join(', ')}`);
   log.verbose(`Skills: ${recommendations.skills.map(s => `${s.name}(${s.score})`).join(', ')}`);
 
-  // Step 6: Confirm selections
-  const selections = await confirmSelections(recommendations);
+  // Step 6: Select team (agents + auto-linked skills)
+  const selections = await selectTeam(recommendations);
+  const allSkills = [...new Set([...selections.skills, ...selections.autoLinkedSkills])];
 
   log.debug(`Selected agents: ${selections.agents.join(', ')}`);
-  log.debug(`Selected skills: ${selections.skills.join(', ')}`);
+  log.debug(`Selected skills: ${allSkills.join(', ')}`);
 
   // Build context
   const context: GenerationContext = {
     goal,
     codebase: codebaseAnalysis,
     selectedAgents: selections.agents,
-    selectedSkills: selections.skills,
+    selectedSkills: allSkills,
     selectedModel: model,
     authMethod: auth.method,
     apiKey: auth.apiKey,
@@ -187,5 +193,5 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
 
   spinner.stop(pc.green('✓') + ' Configuration saved');
 
-  return { summary };
+  return { summary, codebaseAnalysis, projectMode };
 }

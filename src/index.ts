@@ -215,7 +215,7 @@ program
 
       // Dry-run returns no result
       if (result) {
-        displaySuccess(result.summary);
+        displaySuccess(result.summary, result.codebaseAnalysis, result.projectMode);
       }
 
       // Show update notification if available (after success)

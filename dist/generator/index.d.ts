@@ -50,7 +50,7 @@ export declare class AIGenerator {
     private generatePlaceholderAgent;
     private generatePlaceholderSkill;
     /**
-     * Build settings.json with permissions, deny lists, and optional lint hook
+     * Build settings.json with permissions, deny lists, and optional lint/format hook
      */
     private buildSettings;
     /**
@@ -69,6 +69,10 @@ export declare class AIGenerator {
      * Fallback CLAUDE.md - lean, ~700 tokens, ~50 instructions
      */
     private generateClaudeMd;
+    /**
+     * Generate slash commands from detected project commands
+     */
+    private generateSlashCommands;
     /**
      * Execute a prompt using the appropriate auth method
      * @param generationType - Type of generation for max_tokens scaling

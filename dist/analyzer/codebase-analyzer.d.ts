@@ -72,6 +72,10 @@ export declare class CodebaseAnalyzer {
      */
     private generateNegativeConstraints;
     /**
+     * Check if project has a git remote configured
+     */
+    private hasGitRemote;
+    /**
      * Suggest MCP servers based on detected dependencies
      */
     private suggestMcpServers;

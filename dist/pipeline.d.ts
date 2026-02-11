@@ -5,7 +5,9 @@
  * Called by the CLI after authentication and banner display.
  */
 import type { AuthResult } from './utils/auth.js';
+import type { CodebaseAnalysis } from './types/codebase.js';
 import type { WriteSummary } from './types/generation.js';
+import type { ProjectMode } from './types/goal.js';
 export interface PipelineOptions {
     projectRoot: string;
     isDryRun: boolean;
@@ -14,6 +16,8 @@ export interface PipelineOptions {
 }
 export interface PipelineResult {
     summary: WriteSummary;
+    codebaseAnalysis: CodebaseAnalysis;
+    projectMode: ProjectMode;
 }
 /**
  * Run the main generation pipeline.

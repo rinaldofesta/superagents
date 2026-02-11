@@ -82,7 +82,7 @@ export class CodebaseAnalyzer {
 
     // Generate negative constraints and MCP suggestions
     const negativeConstraints = this.generateNegativeConstraints(allDeps);
-    const mcpSuggestions = this.suggestMcpServers(allDeps, framework);
+    const mcpSuggestions = await this.suggestMcpServers(allDeps, framework);
 
     // Detect patterns
     const patterns = await this.detectPatterns(userIgnorePatterns);
@@ -236,6 +236,14 @@ export class CodebaseAnalyzer {
       if (deps['@angular/core']) return 'angular';
       if (deps['svelte']) return 'svelte';
       if (deps['express'] || deps['fastify']) return 'node';
+
+      // CLI tools and generic Node.js projects
+      const cliDeps = ['commander', 'yargs', 'oclif', 'ink', 'meow', 'cac', 'citty'];
+      const serverDeps = ['@nestjs/core', 'koa', 'hapi', '@hapi/hapi', 'restify'];
+      if (cliDeps.some(d => deps[d]) || serverDeps.some(d => deps[d])) return 'node';
+
+      // package.json with a `bin` field is a Node.js CLI project
+      if (pkg.bin) return 'node';
     }
 
     // Python (requirements.txt or pyproject.toml)
@@ -929,9 +937,23 @@ export class CodebaseAnalyzer {
   }
 
   /**
+   * Check if project has a git remote configured
+   */
+  private async hasGitRemote(): Promise<boolean> {
+    try {
+      const gitConfig = path.join(this.projectRoot, '.git', 'config');
+      if (await fs.pathExists(gitConfig)) {
+        const content = await fs.readFile(gitConfig, 'utf-8');
+        return content.includes('[remote');
+      }
+      return false;
+    } catch { return false; }
+  }
+
+  /**
    * Suggest MCP servers based on detected dependencies
    */
-  private suggestMcpServers(allDeps: Array<{ name: string }>, framework: Framework | null): McpSuggestion[] {
+  private async suggestMcpServers(allDeps: Array<{ name: string; version?: string }>, framework: Framework | null): Promise<McpSuggestion[]> {
     const depNames = new Set(allDeps.map(d => d.name));
     const suggestions: McpSuggestion[] = [];
 
@@ -939,14 +961,14 @@ export class CodebaseAnalyzer {
     suggestions.push({
       name: 'context7',
       reason: 'Up-to-date library documentation',
-      installCommand: 'npx -y @anthropic-ai/claude-code mcp add context7 -- npx -y @upstash/context7-mcp'
+      installCommand: 'claude mcp add context7 -- npx -y @upstash/context7-mcp'
     });
 
     if (depNames.has('@supabase/supabase-js')) {
       suggestions.push({
         name: 'supabase',
         reason: 'Supabase database and auth management',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add supabase -- npx -y @supabase/mcp-server'
+        installCommand: 'claude mcp add supabase -- npx -y @supabase/mcp-server'
       });
     }
 
@@ -954,7 +976,7 @@ export class CodebaseAnalyzer {
       suggestions.push({
         name: 'stripe',
         reason: 'Stripe payment integration docs',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add stripe -- npx -y @stripe/mcp'
+        installCommand: 'claude mcp add stripe -- npx -y @stripe/mcp'
       });
     }
 
@@ -962,7 +984,35 @@ export class CodebaseAnalyzer {
       suggestions.push({
         name: 'browser-tools',
         reason: 'Browser debugging and screenshots',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add browser-tools -- npx -y @anthropic-ai/browser-tools-mcp'
+        installCommand: 'claude mcp add browser-tools -- npx -y @anthropic-ai/browser-tools-mcp'
+      });
+    }
+
+    // Vercel detection
+    if (depNames.has('@vercel/analytics') || depNames.has('@vercel/og') ||
+        await fs.pathExists(path.join(this.projectRoot, 'vercel.json'))) {
+      suggestions.push({
+        name: 'vercel',
+        reason: 'Vercel deployment and project management',
+        installCommand: 'claude mcp add vercel --transport http https://mcp.vercel.com/mcp'
+      });
+    }
+
+    // GitHub detection (git remote)
+    if (await this.hasGitRemote()) {
+      suggestions.push({
+        name: 'github',
+        reason: 'GitHub repository management and PR workflows',
+        installCommand: 'claude mcp add github -- npx -y @modelcontextprotocol/server-github'
+      });
+    }
+
+    // Next.js DevTools
+    if (framework === 'nextjs') {
+      suggestions.push({
+        name: 'next-devtools',
+        reason: 'Next.js development tools, error diagnostics, and route inspection',
+        installCommand: 'claude mcp add next-devtools -- npx -y next-devtools-mcp@latest'
       });
     }
 

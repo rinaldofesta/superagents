@@ -6,6 +6,9 @@
  * - Tiered model selection for cost optimization
  * - Verbose logging support
  */
+// Node.js built-ins
+import fs from 'fs-extra';
+import path from 'path';
 // External packages
 import Anthropic from '@anthropic-ai/sdk';
 import ora from 'ora';
@@ -201,16 +204,22 @@ export class AIGenerator {
             updateProgress('file', 'CLAUDE.md', 'error', error instanceof Error ? error.message : 'Unknown error');
             claudeMd = this.generateClaudeMd(context);
         }
+        // Generate slash commands (template-based, no API calls)
+        const commands = this.generateSlashCommands(context);
         spinner.succeed(`Generation complete! [100%]`);
         // Summary logging
         log.section('Generation Summary');
         log.verbose(`Agents generated: ${agents.length} (${agentResults.errors.length} fallbacks)`);
         log.verbose(`Skills generated: ${skills.length} (${skillResults.errors.length} fallbacks)`);
-        const settings = this.buildSettings(context);
+        log.verbose(`Commands generated: ${commands.length}`);
+        // Check for git directory to conditionally add git permissions
+        const hasGit = await fs.pathExists(path.join(context.codebase.projectRoot, '.git'));
+        const settings = this.buildSettings(context, hasGit);
         return {
             agents,
             skills,
             hooks,
+            commands,
             claudeMd,
             settings,
             docs
@@ -399,39 +408,50 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
 `;
     }
     /**
-     * Build settings.json with permissions, deny lists, and optional lint hook
+     * Build settings.json with permissions, deny lists, and optional lint/format hook
      */
-    buildSettings(context) {
+    buildSettings(context, hasGit) {
         const pm = context.codebase.packageManager;
         const lintCmd = context.codebase.lintCommand;
+        const formatCmd = context.codebase.formatCommand;
+        const allowPerms = [
+            'Read(*)',
+            'Write(src/**)',
+            `Bash(${pm} *)`,
+            'Bash(npx *)',
+        ];
+        const denyPerms = [
+            'Read(.env*)',
+            'Bash(rm -rf *)',
+            `Bash(${pm} publish *)`,
+        ];
+        // Add git permissions only if project has git
+        if (hasGit) {
+            allowPerms.push('Bash(git status)', 'Bash(git diff *)', 'Bash(git log *)', 'Bash(git add *)');
+            denyPerms.push('Bash(git push --force *)', 'Bash(git push *)', 'Bash(git checkout main)');
+        }
         const settings = {
             agents: context.selectedAgents,
             skills: context.selectedSkills,
             model: context.selectedModel,
             permissions: {
-                allow: [
-                    'Read(*)',
-                    'Write(src/**)',
-                    `Bash(${pm} *)`,
-                    'Bash(npx *)',
-                    'Bash(git status)',
-                    'Bash(git diff)',
-                    'Bash(git log)'
-                ],
-                deny: [
-                    'Read(.env*)',
-                    'Bash(rm -rf *)',
-                    'Bash(git push --force *)',
-                    `Bash(${pm} publish *)`
-                ]
+                allow: allowPerms,
+                deny: denyPerms,
             }
         };
-        if (lintCmd) {
+        // Build Stop hook with format + lint commands
+        if (lintCmd || formatCmd) {
+            const hookCommands = [];
+            if (formatCmd)
+                hookCommands.push(`${formatCmd} 2>/dev/null`);
+            if (lintCmd)
+                hookCommands.push(`${lintCmd} --fix --quiet 2>/dev/null`);
+            hookCommands.push('exit 0');
             settings.hooks = {
                 Stop: [{
                         hooks: [{
                                 type: 'command',
-                                command: lintCmd
+                                command: hookCommands.join('; ')
                             }]
                     }]
             };
@@ -568,7 +588,7 @@ ${patternLines || 'No patterns detected yet.'}
 - Import order: built-ins, external packages, internal modules, type imports
 - Named exports preferred over default exports
 - Type \`import type\` for type-only imports
-- Match existing indentation and formatting
+- Code style enforced by Stop hook — do not add style rules here
 
 ## Before Coding
 1. **Think**: State assumptions, surface tradeoffs, ask if unclear
@@ -579,6 +599,56 @@ ${patternLines || 'No patterns detected yet.'}
 ## Deep Context
 See \`.claude/docs/\` for architecture, patterns, and setup details.
 `;
+    }
+    /**
+     * Generate slash commands from detected project commands
+     */
+    generateSlashCommands(context) {
+        const build = context.codebase.buildCommand || 'npm run build';
+        const lint = context.codebase.lintCommand || 'npm run lint';
+        const test = context.codebase.testCommand || 'npm test';
+        return [
+            {
+                filename: 'status.md',
+                commandName: 'status',
+                content: `Read the project structure, check for build errors (\`${build}\`), and report:
+1. What features/pages exist and are working
+2. What's broken (build errors, missing env vars, type errors)
+3. What's next based on CLAUDE.md or ROADMAP.md
+Report in plain language. No jargon.
+`
+            },
+            {
+                filename: 'fix.md',
+                commandName: 'fix',
+                content: `1. Run \`${build}\` and capture errors
+2. Run \`${lint}\` and capture errors
+3. Fix all errors you find
+4. Run build again to verify
+5. Report what was fixed
+`
+            },
+            {
+                filename: 'next.md',
+                commandName: 'next',
+                content: `Read CLAUDE.md and ROADMAP.md (if exists). Based on current project state:
+1. What has already been built? (check existing files)
+2. What is the next logical step?
+3. Describe the task clearly and ask if I should proceed.
+`
+            },
+            {
+                filename: 'ship.md',
+                commandName: 'ship',
+                content: `1. Run \`${build}\` — fix any errors
+2. Run \`${test}\` — fix any failures
+3. Run \`${lint} --fix\`
+4. \`git add -A && git status\` — show what will be committed
+5. Suggest a commit message based on changes
+6. STOP and ask for confirmation before committing
+`
+            }
+        ];
     }
     /**
      * Execute a prompt using the appropriate auth method

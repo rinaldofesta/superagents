@@ -64,11 +64,17 @@ export interface DocOutput {
     content: string;
     subfolder?: string;
 }
+export interface CommandOutput {
+    filename: string;
+    content: string;
+    commandName: string;
+}
 export interface GeneratedOutputs {
     claudeMd: string;
     agents: AgentOutput[];
     skills: SkillOutput[];
     hooks: HookOutput[];
+    commands: CommandOutput[];
     settings: SettingsJson;
     docs: DocOutput[];
 }
@@ -76,6 +82,7 @@ export interface WriteSummary {
     totalFiles: number;
     agents: string[];
     skills: string[];
+    commands: string[];
     docs: string[];
     projectRoot: string;
     claudeDir: string;
