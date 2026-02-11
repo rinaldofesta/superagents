@@ -88,10 +88,7 @@ Project Blueprints — 5 curated templates (SaaS Dashboard, Landing+Waitlist, AP
 Session Memory & Evolving Config — `/recap` slash command for session summaries, enhanced `/next` (reads session recaps + git log), enhanced `/fix` (plain language error description support), `Write(docs/**)` permission, Session Continuity section in generated CLAUDE.md, `superagents evolve` CLI subcommand (differ, proposer, display). 65 tests passing.
 
 ### Phase 4A (Complete)
-Handoff & Blueprint Sharing — `superagents handoff` (HANDOFF.md generation with project state, build status, roadmap progress, team config), `superagents publish` (package project as .blueprint.zip), `superagents use <source>` (install blueprint from local file or URL with --preview/--force). Enhanced ROADMAP.md parser with task description capture. 90 tests passing.
-
-### Phase 4B (Next)
-Platform & Ecosystem — blueprint marketplace/registry, Entire integration.
+Handoff & Blueprint Sharing — `superagents handoff` (HANDOFF.md generation with project state, build status, roadmap progress, team config), `superagents publish` (package project as .blueprint.zip), `superagents use <source>` (install blueprint from local file or URL with --preview/--force). Enhanced ROADMAP.md parser with task description capture. Fixed install.sh for git-based installs. Full command docs for status/evolve/handoff/publish/use. 113 tests passing (12 test files).
 
 ## Deep Context
 
@@ -102,5 +99,5 @@ Platform & Ecosystem — blueprint marketplace/registry, Entire integration.
 ## Checkpoint
 
 - **Branch**: v2
-- **Last completed**: Phase 4A — Handoff & Blueprint Sharing (superagents handoff/publish/use, enhanced parser with descriptions, 25 new tests, 90 total)
-- **Next**: Phase 4B — Platform & Ecosystem (blueprint marketplace/registry, Entire integration)
+- **Last completed**: Phase 4A — Handoff & Blueprint Sharing (handoff/publish/use commands, 113 tests, full command docs, install.sh fix)
+- **Next**: Additional test coverage, or Phase 4B if registry infrastructure is ready
