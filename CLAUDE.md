@@ -33,7 +33,7 @@ TypeScript CLI | Node.js >= 20 | ESM | @anthropic-ai/sdk, @clack/prompts, comman
 
 ```
 src/
-  index.ts           CLI entry, subcommands (status, evolve, update, cache, templates, export, import)
+  index.ts           CLI entry, subcommands (status, evolve, handoff, publish, use, update, cache, templates, export, import)
   pipeline.ts        Generation pipeline orchestration
   analyzer/          Codebase detection (type, framework, deps, patterns)
   blueprints/        Project blueprints (definitions, matcher, renderer)
@@ -47,10 +47,13 @@ src/
   cache/             File-based analysis cache
   cli/               Prompts, banner, colors, UX flow
   templates/         Agent + skill markdown templates (21 agents, 23 skills)
-  types/             All type definitions (includes blueprint.ts, evolve.ts)
+  handoff/           Team handoff (collector, renderer, HANDOFF.md generation)
+  publish/           Blueprint publishing (extractor, packager, .blueprint.zip)
+  use/               Blueprint install (resolver, installer, local/URL support)
+  types/             All type definitions (includes blueprint.ts, evolve.ts, handoff.ts, published-blueprint.ts)
   prompts/           Compressed AI prompt templates
   utils/             Auth, logger, version check
-tests/               Vitest test suites (65 tests)
+tests/               Vitest test suites (90 tests)
 ```
 
 ## Agents (3)
@@ -84,8 +87,11 @@ Project Blueprints — 5 curated templates (SaaS Dashboard, Landing+Waitlist, AP
 ### Phase 3 (Complete)
 Session Memory & Evolving Config — `/recap` slash command for session summaries, enhanced `/next` (reads session recaps + git log), enhanced `/fix` (plain language error description support), `Write(docs/**)` permission, Session Continuity section in generated CLAUDE.md, `superagents evolve` CLI subcommand (differ, proposer, display). 65 tests passing.
 
-### Phase 4 (Next)
-Platform & Ecosystem — blueprint publishing (`superagents publish`), blueprint marketplace, Entire integration, team handoff protocol.
+### Phase 4A (Complete)
+Handoff & Blueprint Sharing — `superagents handoff` (HANDOFF.md generation with project state, build status, roadmap progress, team config), `superagents publish` (package project as .blueprint.zip), `superagents use <source>` (install blueprint from local file or URL with --preview/--force). Enhanced ROADMAP.md parser with task description capture. 90 tests passing.
+
+### Phase 4B (Next)
+Platform & Ecosystem — blueprint marketplace/registry, Entire integration.
 
 ## Deep Context
 
@@ -96,5 +102,5 @@ Platform & Ecosystem — blueprint publishing (`superagents publish`), blueprint
 ## Checkpoint
 
 - **Branch**: v2
-- **Last completed**: Phase 3 — Session Memory & Evolving Config (/recap, enhanced /next + /fix, `superagents evolve`, differ/proposer/display, 21 new tests)
-- **Next**: Phase 4 — Platform & Ecosystem (blueprint publishing, marketplace, Entire integration, team handoff)
+- **Last completed**: Phase 4A — Handoff & Blueprint Sharing (superagents handoff/publish/use, enhanced parser with descriptions, 25 new tests, 90 total)
+- **Next**: Phase 4B — Platform & Ecosystem (blueprint marketplace/registry, Entire integration)
