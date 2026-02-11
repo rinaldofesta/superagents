@@ -99,5 +99,5 @@ Handoff & Blueprint Sharing — `superagents handoff` (HANDOFF.md generation wit
 ## Checkpoint
 
 - **Branch**: v2
-- **Last completed**: Phase 4A — Handoff & Blueprint Sharing (handoff/publish/use commands, 248 tests across 17 files, full command docs, install.sh fix)
-- **Next**: Phase 4B if registry infrastructure is ready, or remaining test coverage gaps
+- **Last completed**: Test coverage expansion — added 135 tests for core modules (codebase-analyzer 35, model-selector 36, generator 27, writer 21, concurrency 16), fixed ESLint `any` warning in `cli/prompts.ts`. 248 tests across 17 files, 0 type errors, 0 lint warnings.
+- **Next**: Phase 4B if registry infrastructure is ready, or remaining test coverage gaps (pipeline.ts, updater/, config/, cli/, auth, evolve display, handoff collector, publish/use entry points)
