@@ -36,5 +36,6 @@ export interface Recommendations {
     skills: SkillScore[];
     defaultAgents: string[];
     defaultSkills: string[];
+    agentSkillLinks: Record<string, string[]>;
 }
 //# sourceMappingURL=config.d.ts.map

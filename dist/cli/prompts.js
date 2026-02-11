@@ -8,6 +8,7 @@ import { glob } from 'glob';
 import pc from 'picocolors';
 import { AGENT_EXPERTS } from './banner.js';
 import { orange, bgOrange } from './colors.js';
+import { DISPLAY_NAMES } from './display-names.js';
 export async function collectProjectGoal(codebaseAnalysis) {
     p.intro(bgOrange(pc.black(' SuperAgents ')));
     // If we have codebase analysis, show what was detected and streamline the flow
@@ -136,27 +137,112 @@ export async function selectModel(showPicker) {
     });
     return result.model;
 }
-export async function confirmSelections(recommendations) {
+export async function selectTeam(recommendations) {
     let agents = [];
     let skills = [];
+    let autoLinkedSkills = [];
     let confirmed = false;
     while (!confirmed) {
         if (agents.length === 0) {
-            agents = await pickAgents(recommendations);
+            // Step 1: Show recommended agents as a note (only defaults, top 2-3)
+            const defaultAgentScores = recommendations.agents
+                .filter(a => recommendations.defaultAgents.includes(a.name));
+            if (defaultAgentScores.length > 0) {
+                const recLines = defaultAgentScores.map(a => {
+                    const expert = AGENT_EXPERTS[a.name];
+                    const expertText = expert ? orange(` [${expert.expert}]`) : '';
+                    return `  ${pc.green('\u2713')} ${pc.bold(a.name)}${expertText}\n     ${pc.dim(a.reasons[0])}`;
+                }).join('\n');
+                p.note(recLines, 'Recommended for your project');
+            }
+            // Step 2: Agent multiselect with tiered pre-selection
+            const visibleAgents = recommendations.agents.filter(a => a.score > 0);
+            agents = await p.multiselect({
+                message: `Pick your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
+                options: visibleAgents.map(agent => {
+                    const isDefault = recommendations.defaultAgents.includes(agent.name);
+                    const expert = AGENT_EXPERTS[agent.name];
+                    const hint = isDefault
+                        ? agent.reasons[0]
+                        : expert ? `${expert.domain} (${expert.expert})` : agent.reasons[0];
+                    return {
+                        value: agent.name,
+                        label: agent.name,
+                        hint,
+                        selected: isDefault
+                    };
+                }),
+                required: true
+            });
+            if (p.isCancel(agents)) {
+                p.cancel('Operation cancelled');
+                process.exit(0);
+            }
+            // Step 3: Compute auto-linked skills
+            autoLinkedSkills = computeAutoLinkedSkills(agents, recommendations);
+            if (autoLinkedSkills.length > 0) {
+                const linkLines = autoLinkedSkills.map(skillName => {
+                    // Find which agent linked this skill
+                    const linkedAgent = agents.find(agent => {
+                        const links = recommendations.agentSkillLinks[agent] || [];
+                        return links.includes(skillName);
+                    });
+                    const pairedText = linkedAgent ? pc.dim(` (paired with ${linkedAgent})`) : '';
+                    return `  ${pc.green('\u2713')} ${pc.bold(skillName)}${pairedText}`;
+                }).join('\n');
+                p.note(linkLines, 'Auto-linked skills');
+            }
         }
+        // Step 4: Optional skill adjustment
         if (skills.length === 0) {
-            skills = await pickSkills(recommendations);
+            const hasSkillOptions = recommendations.skills.length > 0;
+            if (hasSkillOptions) {
+                const adjustSkills = await p.confirm({
+                    message: 'Want to adjust skills?',
+                    initialValue: false
+                });
+                if (p.isCancel(adjustSkills)) {
+                    p.cancel('Operation cancelled');
+                    process.exit(0);
+                }
+                if (adjustSkills) {
+                    // Show skill multiselect with auto-linked pre-selected
+                    const autoLinkedSet = new Set(autoLinkedSkills);
+                    const defaultSet = new Set(recommendations.defaultSkills);
+                    skills = await p.multiselect({
+                        message: `Add skills to your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
+                        options: recommendations.skills.map(skill => ({
+                            value: skill.name,
+                            label: skill.name,
+                            hint: skill.reasons[0],
+                            selected: autoLinkedSet.has(skill.name) || defaultSet.has(skill.name)
+                        })),
+                        required: true
+                    });
+                    if (p.isCancel(skills)) {
+                        p.cancel('Operation cancelled');
+                        process.exit(0);
+                    }
+                }
+                else {
+                    // Use auto-linked + defaults as-is
+                    skills = [...new Set([...autoLinkedSkills, ...recommendations.defaultSkills])];
+                }
+            }
+            else {
+                skills = autoLinkedSkills;
+            }
         }
-        // Review summary
+        // Step 5: Confirm
+        const allSkills = [...new Set([...skills, ...autoLinkedSkills])];
         const summary = `  Agents: ${agents.join(', ')}\n` +
-            `  Skills: ${skills.join(', ')}`;
+            `  Skills: ${allSkills.join(', ')}`;
         p.note(summary, 'Your Team');
         const action = await p.select({
             message: 'Ready to go?',
             options: [
                 { value: 'confirm', label: 'Looks good', hint: 'Generate configuration' },
-                { value: 'agents', label: 'Change agents', hint: 'Go back to agent selection' },
-                { value: 'skills', label: 'Change skills', hint: 'Go back to skill selection' },
+                { value: 'change', label: 'Change team', hint: 'Go back to selection' },
             ]
         });
         if (p.isCancel(action)) {
@@ -166,67 +252,26 @@ export async function confirmSelections(recommendations) {
         if (action === 'confirm') {
             confirmed = true;
         }
-        else if (action === 'agents') {
+        else {
             agents = [];
-        }
-        else if (action === 'skills') {
             skills = [];
+            autoLinkedSkills = [];
         }
     }
-    return { agents, skills };
+    return { agents, skills, autoLinkedSkills };
 }
-async function pickAgents(recommendations) {
-    const agentLines = recommendations.agents
-        .slice(0, 5)
-        .map(a => {
-        const expert = AGENT_EXPERTS[a.name];
-        const expertText = expert ? orange(` [${expert.expert}]`) : '';
-        return `  ${pc.green('✓')} ${pc.bold(a.name)}${expertText}\n     ${pc.dim(a.reasons[0])}`;
-    })
-        .join('\n');
-    p.note(agentLines, 'Recommended Agents');
-    console.log(pc.dim('\n  Agents are AI specialists trained with industry-proven methods.\n  Each one brings deep expertise in a specific area.\n'));
-    const agents = await p.multiselect({
-        message: `Pick your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
-        options: recommendations.agents.map(agent => {
-            const expert = AGENT_EXPERTS[agent.name];
-            const expertHint = expert ? `${expert.domain} (${expert.expert})` : agent.reasons[0];
-            return {
-                value: agent.name,
-                label: agent.name,
-                hint: expertHint,
-                selected: recommendations.defaultAgents.includes(agent.name)
-            };
-        }),
-        required: true
-    });
-    if (p.isCancel(agents)) {
-        p.cancel('Operation cancelled');
-        process.exit(0);
+function computeAutoLinkedSkills(selectedAgents, recommendations) {
+    const availableSkillNames = new Set(recommendations.skills.filter(s => s.score > 0).map(s => s.name));
+    const linked = new Set();
+    for (const agent of selectedAgents) {
+        const links = recommendations.agentSkillLinks[agent] || [];
+        for (const skill of links) {
+            if (availableSkillNames.has(skill)) {
+                linked.add(skill);
+            }
+        }
     }
-    return agents;
-}
-async function pickSkills(recommendations) {
-    p.note(recommendations.skills
-        .slice(0, 5)
-        .map(s => `  ${pc.green('✓')} ${pc.bold(s.name)} - ${pc.dim(s.reasons[0])}`)
-        .join('\n'), 'Recommended Skills');
-    console.log(pc.dim('\n  Skills are knowledge packs — they teach your AI team about specific tools and frameworks.\n'));
-    const skills = await p.multiselect({
-        message: `Add skills to your team ${pc.dim('(Space to toggle, Enter to confirm)')}`,
-        options: recommendations.skills.map(skill => ({
-            value: skill.name,
-            label: skill.name,
-            hint: skill.reasons[0],
-            selected: recommendations.defaultSkills.includes(skill.name)
-        })),
-        required: true
-    });
-    if (p.isCancel(skills)) {
-        p.cancel('Operation cancelled');
-        process.exit(0);
-    }
-    return skills;
+    return Array.from(linked);
 }
 export async function confirmOverwrite(dirName = '.claude') {
     const shouldOverwrite = await p.confirm({
@@ -439,16 +484,6 @@ function getCategoryLabel(category) {
     };
     return labels[category];
 }
-const DISPLAY_NAMES = {
-    'nextjs': 'Next.js', 'nuxtjs': 'Nuxt.js', 'react': 'React', 'vue': 'Vue',
-    'angular': 'Angular', 'svelte': 'Svelte', 'express': 'Express', 'fastify': 'Fastify',
-    'nestjs': 'NestJS', 'django': 'Django', 'fastapi': 'FastAPI', 'flask': 'Flask',
-    'gin': 'Gin', 'fiber': 'Fiber', 'actix': 'Actix', 'rocket': 'Rocket',
-    'spring': 'Spring', 'laravel': 'Laravel', 'rails': 'Rails',
-    'typescript': 'TypeScript', 'javascript': 'JavaScript', 'python': 'Python',
-    'go': 'Go', 'rust': 'Rust', 'java': 'Java', 'csharp': 'C#',
-    'php': 'PHP', 'ruby': 'Ruby', 'node': 'Node.js',
-};
 function formatCodebaseInfo(analysis) {
     const parts = [];
     if (analysis.framework) {

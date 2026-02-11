@@ -9,10 +9,12 @@ export declare function collectProjectGoal(codebaseAnalysis?: CodebaseAnalysis):
     category: GoalCategory;
 }>;
 export declare function selectModel(showPicker?: boolean): Promise<'opus' | 'sonnet'>;
-export declare function confirmSelections(recommendations: Recommendations): Promise<{
+export interface TeamSelection {
     agents: string[];
     skills: string[];
-}>;
+    autoLinkedSkills: string[];
+}
+export declare function selectTeam(recommendations: Recommendations): Promise<TeamSelection>;
 export declare function confirmOverwrite(dirName?: string): Promise<boolean>;
 export declare function selectPackages(packages: MonorepoPackage[]): Promise<string[]>;
 /**

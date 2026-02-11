@@ -33,7 +33,25 @@ const REQUIREMENT_AGENTS = {
         reason: 'API integrations require design and documentation'
     }
 };
+// Agents that overlap in function — if both are in defaults, keep only the higher-scored one
+const AGENT_OVERLAP_GROUPS = [
+    ['docs-writer', 'copywriter'],
+    ['code-reviewer', 'testing-specialist'],
+    ['architect', 'tech-lead'],
+];
 export class RecommendationEngine {
+    // Agent-to-skill auto-linking: when an agent is selected, these skills auto-attach
+    static AGENT_SKILL_LINKS = {
+        'testing-specialist': ['vitest', 'playwright'],
+        'frontend-specialist': ['react', 'nextjs', 'vue', 'tailwind', 'angular', 'svelte'],
+        'backend-engineer': ['nodejs', 'express', 'nestjs', 'python', 'fastapi'],
+        'database-specialist': ['prisma', 'drizzle', 'supabase'],
+        'devops-specialist': ['docker'],
+        'api-designer': ['graphql'],
+        'security-analyst': ['stripe'],
+        'mobile-specialist': ['react'],
+        'cfo': ['financial-planning', 'fundraising'],
+    };
     // Technology keywords to skill mappings
     static TECH_KEYWORDS = {
         // Python ecosystem
@@ -240,20 +258,138 @@ export class RecommendationEngine {
             .sort((a, b) => b.score - a.score);
         const skills = Array.from(skillScores.values())
             .sort((a, b) => b.score - a.score);
-        // Pre-select items with score >= 80, suppress low-value agents, cap at 5
-        const defaultAgents = agents
+        // Pre-select items with score >= 80, suppress low-value agents, cap at 3
+        let defaultAgents = agents
             .filter(a => a.score >= 80 && !SUPPRESS_FROM_DEFAULTS.has(a.name))
             .map(a => a.name)
-            .slice(0, 5);
+            .slice(0, 3);
+        // Apply overlap suppression to avoid recommending redundant agents
+        defaultAgents = this.applyOverlapSuppression(agents, defaultAgents);
         const defaultSkills = skills
             .filter(s => s.score >= 70)
-            .map(s => s.name);
+            .map(s => s.name)
+            .slice(0, 5);
+        // Replace generic reasons with project-specific ones
+        for (const agent of agents) {
+            const specificReason = this.buildProjectSpecificReason(agent.name, codebase, goal);
+            if (specificReason) {
+                agent.reasons[0] = specificReason;
+            }
+        }
         return {
             agents,
             skills,
             defaultAgents,
-            defaultSkills
+            defaultSkills,
+            agentSkillLinks: RecommendationEngine.AGENT_SKILL_LINKS
         };
+    }
+    /**
+     * Remove overlapping agents from defaults — keep the higher-scored one
+     */
+    applyOverlapSuppression(agents, defaults) {
+        const result = [...defaults];
+        const scoreMap = new Map(agents.map(a => [a.name, a.score]));
+        for (const group of AGENT_OVERLAP_GROUPS) {
+            const inDefaults = group.filter(name => result.includes(name));
+            if (inDefaults.length > 1) {
+                // Keep the highest-scored, remove the rest
+                inDefaults.sort((a, b) => (scoreMap.get(b) || 0) - (scoreMap.get(a) || 0));
+                for (const name of inDefaults.slice(1)) {
+                    const idx = result.indexOf(name);
+                    if (idx !== -1)
+                        result.splice(idx, 1);
+                }
+            }
+        }
+        return result;
+    }
+    /**
+     * Build a project-specific reason for an agent based on codebase analysis
+     */
+    buildProjectSpecificReason(agentName, codebase, goal) {
+        const { detectedPatterns, dependencies, totalFiles, testCommand } = codebase;
+        const depNames = new Set(dependencies.map(d => d.name));
+        const utilPattern = detectedPatterns.find(p => p.type === 'utils');
+        const testPattern = detectedPatterns.find(p => p.type === 'tests');
+        const apiPattern = detectedPatterns.find(p => p.type === 'api-routes');
+        const componentPattern = detectedPatterns.find(p => p.type === 'components');
+        switch (agentName) {
+            case 'backend-engineer': {
+                if (utilPattern && utilPattern.paths.length > 0) {
+                    return `Your project has ${utilPattern.paths.length} utility modules \u2014 clean architecture keeps this maintainable`;
+                }
+                if (totalFiles > 20) {
+                    return `${totalFiles} files detected \u2014 structured backend patterns keep complexity manageable`;
+                }
+                return null;
+            }
+            case 'testing-specialist': {
+                if (testPattern) {
+                    return `${testPattern.paths.length} test file${testPattern.paths.length === 1 ? '' : 's'} found \u2014 helps expand coverage systematically`;
+                }
+                if (testCommand) {
+                    return `Test runner detected (${testCommand}) \u2014 helps expand coverage systematically`;
+                }
+                return 'No tests found yet \u2014 helps build coverage from scratch';
+            }
+            case 'frontend-specialist': {
+                if (componentPattern && componentPattern.paths.length > 0) {
+                    return `${componentPattern.paths.length} component${componentPattern.paths.length === 1 ? '' : 's'} detected \u2014 maintains consistent UI patterns`;
+                }
+                if (depNames.has('react') || depNames.has('vue') || depNames.has('svelte')) {
+                    return 'Frontend framework detected \u2014 ensures component best practices';
+                }
+                return null;
+            }
+            case 'copywriter': {
+                if (goal.category === 'cli-tool') {
+                    return 'CLI help text, error messages, and README need clear writing';
+                }
+                if (goal.category === 'ecommerce') {
+                    return 'Product descriptions, CTAs, and checkout copy drive conversions';
+                }
+                return null;
+            }
+            case 'docs-writer': {
+                if (goal.category === 'api-service' || apiPattern) {
+                    return 'API documentation helps consumers integrate correctly';
+                }
+                return null;
+            }
+            case 'security-analyst': {
+                if (depNames.has('stripe') || depNames.has('@stripe/stripe-js')) {
+                    return 'Payment integration detected \u2014 ensures secure transaction handling';
+                }
+                return null;
+            }
+            case 'database-specialist': {
+                if (depNames.has('prisma') || depNames.has('drizzle-orm')) {
+                    return 'ORM detected \u2014 optimizes queries and data modeling';
+                }
+                return null;
+            }
+            case 'api-designer': {
+                if (apiPattern && apiPattern.paths.length > 0) {
+                    return `${apiPattern.paths.length} API route${apiPattern.paths.length === 1 ? '' : 's'} found \u2014 ensures consistent API design`;
+                }
+                return null;
+            }
+            case 'devops-specialist': {
+                if (depNames.has('docker') || codebase.detectedPatterns.some(p => p.description.toLowerCase().includes('docker'))) {
+                    return 'Container setup detected \u2014 ensures reliable deployments';
+                }
+                return null;
+            }
+            case 'code-reviewer': {
+                if (totalFiles > 30) {
+                    return `${totalFiles} files \u2014 code review catches issues before they compound`;
+                }
+                return null;
+            }
+            default:
+                return null;
+        }
     }
     /**
      * Extract technology keywords from goal description

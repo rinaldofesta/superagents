@@ -1,266 +1,81 @@
-# SuperAgents
+# SuperAgents v2
 
-CLI tool that generates context-aware Claude Code configurations. Analyzes your codebase and goals to recommend specialized AI agents with software engineering principles built in.
+## What This Is
+TypeScript CLI that generates lean, context-aware Claude Code configurations. Takes users from idea to configured project with AI agents, skills, permissions, hooks, and slash commands.
 
-## Tech Stack
+## Stack
+TypeScript CLI | Node.js >= 20 | ESM | @anthropic-ai/sdk, @clack/prompts, commander, cosmiconfig, zod
 
-| Layer | Technology | Version | Purpose |
-|-------|------------|---------|---------|
-| Runtime | Node.js | 20.x+ | Server-side execution |
-| Language | TypeScript | 5.x | Type-safe development (strict mode) |
-| AI | @anthropic-ai/sdk | 0.30.x | Claude API interaction |
-| CLI Framework | Commander.js | 12.x | Command-line argument parsing |
-| CLI UX | @clack/prompts | 0.7.x | Interactive terminal prompts |
-| CLI UX | ora | 8.x | Terminal spinners and loading states |
-| CLI UX | picocolors | 1.x | Terminal colors |
-| Config | cosmiconfig | 9.x | Config file discovery |
-| File System | fs-extra | 11.x | Enhanced file operations |
-| File Patterns | glob | 10.x | File pattern matching |
-| Validation | zod | 3.x | Schema validation |
-| Archives | archiver, unzipper | 7.x | ZIP file operations |
-| Testing | Vitest | 4.x | Unit testing framework |
-
-## Quick Start
-
-```bash
-# Prerequisites
-Node.js 20+
-
-# Installation (npm)
-npm install -g superagents
-
-# Or one-line install
-curl -fsSL https://superagents.playnew.com/install.sh | bash
-
-# Development
-npm install        # Install dependencies
-npm run dev        # Run in development mode
-npm run build      # Build for production
-npm test           # Run tests
-npm run lint       # Lint code
-npm run type-check # Type check without emit
-```
-
-## Project Structure
-
-```
-pn-superagents/
-├── src/
-│   ├── index.ts                    # CLI entry point (Commander setup)
-│   ├── analyzer/
-│   │   └── codebase-analyzer.ts    # Project detection and analysis
-│   ├── cache/
-│   │   └── index.ts                # Caching for analysis and generation
-│   ├── cli/
-│   │   ├── banner.ts               # ASCII art and success messages
-│   │   ├── dry-run.ts              # Preview mode
-│   │   ├── progress.ts             # Progress indicators
-│   │   └── prompts.ts              # Interactive prompts (@clack/prompts)
-│   ├── config/
-│   │   ├── export-import.ts        # Config export/import (ZIP)
-│   │   └── presets.ts              # Goal-based presets
-│   ├── context/
-│   │   └── recommendation-engine.ts # Agent/skill recommendations
-│   ├── generator/
-│   │   └── index.ts                # AI generation orchestration
-│   ├── prompts/
-│   │   └── templates.ts            # AI prompt templates
-│   ├── templates/
-│   │   ├── agents/                 # 15 expert-backed agent templates
-│   │   ├── skills/                 # 16 framework skill templates
-│   │   ├── custom.ts               # Custom template management
-│   │   └── loader.ts               # Template loading and rendering
-│   ├── types/
-│   │   ├── codebase.ts             # CodebaseAnalysis, Pattern types
-│   │   ├── config.ts               # AgentDefinition, SkillDefinition
-│   │   ├── generation.ts           # GenerationContext, outputs
-│   │   └── goal.ts                 # ProjectGoal, GoalCategory
-│   ├── updater/
-│   │   └── index.ts                # Incremental config updates
-│   ├── utils/
-│   │   ├── auth.ts                 # Anthropic authentication
-│   │   ├── claude-cli.ts           # Claude CLI execution
-│   │   ├── concurrency.ts          # Parallel generation
-│   │   ├── logger.ts               # Verbose logging
-│   │   └── model-selector.ts       # Tiered model selection
-│   └── writer/
-│       └── index.ts                # Output file writer
-├── bin/
-│   └── superagents                 # CLI entry script
-├── package.json
-├── tsconfig.json
-└── .eslintrc.json
-```
-
-## Architecture Overview
-
-SuperAgents follows a pipeline architecture:
-
-```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   CLI Input  │ -> │   Analyzer   │ -> │  Recommender │ -> │  Generator   │
-│   (prompts)  │    │  (codebase)  │    │ (goal+code)  │    │    (AI)      │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-                                                                    │
-                                                                    v
-                                                            ┌──────────────┐
-                                                            │    Writer    │
-                                                            │  (.claude/)  │
-                                                            └──────────────┘
-```
-
-1. **CLI Input**: Collects project goal and user preferences via @clack/prompts
-2. **CodebaseAnalyzer**: Detects project type, framework, dependencies, patterns
-3. **RecommendationEngine**: Scores and suggests agents/skills based on goal + codebase
-4. **AIGenerator**: Generates content using templates or Claude API (with caching)
-5. **OutputWriter**: Writes `.claude/` folder structure
-
-### Key Modules
-
-| Module | Location | Purpose |
-|--------|----------|---------|
-| CodebaseAnalyzer | `src/analyzer/` | Detects project type, framework, dependencies |
-| RecommendationEngine | `src/context/` | Combines goal and codebase for smart recommendations |
-| AIGenerator | `src/generator/` | Orchestrates parallel AI generation with caching |
-| CacheManager | `src/cache/` | Caches analysis (24h) and generation (7 days) |
-| Template system | `src/templates/` | 31 built-in templates to reduce API calls |
-
-## Development Guidelines
-
-### File Naming
-- Source files: kebab-case (`codebase-analyzer.ts`, `model-selector.ts`)
-- Template files: kebab-case (`backend-engineer.md`, `testing-specialist.md`)
-
-### Code Naming
-- Functions: camelCase (`analyzeCodebase`, `buildPrompt`)
-- Types/Interfaces: PascalCase (`CodebaseAnalysis`, `GenerationContext`)
-- Constants: SCREAMING_SNAKE (`BUNDLED_AGENTS`, `CACHE_VERSION`)
-- Unused params: underscore prefix (`_framework`, `_result`)
-
-### Import Order
-1. Node.js built-ins (`path`, `fs`, `crypto`)
-2. External packages (`@anthropic-ai/sdk`, `@clack/prompts`)
-3. Internal modules (`./types/`, `./utils/`)
-4. Type imports (with `type` keyword)
-
-### Module Pattern
-- ESM modules with `.js` extensions in imports
-- `type` keyword for type-only imports
-- Named exports preferred over default exports
-
-## Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `superagents` | Main generation flow |
-| `superagents --dry-run` | Preview without API calls |
-| `superagents -v, --verbose` | Show detailed output |
-| `superagents -u, --update` | Update existing config incrementally |
-| `superagents update` | Self-update to latest version |
-| `superagents cache --stats` | Show cache statistics |
-| `superagents cache --clear` | Clear cached data |
-| `superagents templates --list` | List available templates |
-| `superagents export [output]` | Export config to ZIP |
-| `superagents import <source>` | Import config from ZIP |
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | For API mode | Anthropic API key (sk-ant-...) |
-
-Authentication supports two modes:
-- **API Key**: Set `ANTHROPIC_API_KEY` environment variable
-- **Claude Plan**: Uses Claude CLI for Max subscribers
-
-## Testing
-
-- **Framework**: Vitest 4.x
-- **Run tests**: `npm test`
-- **Watch mode**: `npm run test:watch`
-- **Type check**: `npm run type-check`
-
-## Caching Strategy
-
-| Cache Type | TTL | Key Components |
-|------------|-----|----------------|
-| Codebase Analysis | 24 hours | Project root hash (package.json, tsconfig, src/ structure) |
-| Generation | 7 days | Goal + codebase hash + item type + model |
-
-Cache location: `~/.superagents/cache/`
-
-## Agents
-
-| Agent | Expert | Domain |
-|-------|--------|--------|
-| backend-engineer | Uncle Bob | Clean Architecture & SOLID |
-| frontend-specialist | Dan Abramov | React Patterns |
-| code-reviewer | Google Engineering | Code Review Practices |
-| debugger | Julia Evans | Systematic Debugging |
-| devops-specialist | Kelsey Hightower | Infrastructure Patterns |
-| security-analyst | OWASP Foundation | Security Best Practices |
-| database-specialist | Martin Kleppmann | Data-Intensive Apps |
-| api-designer | Stripe | API Design Principles |
-| testing-specialist | Kent Beck | Test-Driven Development |
-| docs-writer | Divio | Documentation System |
-| performance-optimizer | Addy Osmani | Web Performance |
-| copywriter | Paolo Gervasi | Conversion Copywriting |
-| designer | Sarah Corti | UI/UX Design |
-| architect | Martin Fowler | Enterprise Patterns |
-| product-manager | Marty Cagan | Product Discovery |
-
-## Skills
-
-typescript, nodejs, react, nextjs, vue, tailwind, prisma, drizzle, express, supabase, vitest, graphql, docker, python, fastapi, mcp
-
-## Additional Resources
-
-- Repository: https://github.com/Play-New/superagents
-- Issues: https://github.com/Play-New/superagents/issues
-- Custom templates: `~/.superagents/templates/`
-
-## Coding Principles
-
-Karpathy's 4 principles are embedded in every generated agent.
-
-### 1. Think Before Coding
-- State assumptions explicitly
-- Present multiple interpretations if they exist
-- Push back if a simpler approach exists
-- Stop and ask if something is unclear
-
-### 2. Simplicity First
-- No features beyond what was asked
+## Hard Rules
+- Use **Vitest**, NOT Jest
+- Use **Zod**, NOT Joi or Yup
+- Use **picocolors**, NOT chalk
+- No features beyond what's explicitly requested
 - No abstractions for single-use code
-- No speculative flexibility
-- Rewrite 200 lines if they could be 50
+- No error handling for impossible scenarios
+- Every generated line must pass the "Would Claude Know This?" test
+- Generated CLAUDE.md: max 700 tokens. Agents: 200-400 tokens. Total active config: < 3,000 tokens.
 
-### 3. Surgical Changes
-- Don't improve adjacent code
-- Match existing style
-- Only remove orphans YOUR changes created
-- Every changed line traces to the request
+## Commands
+| Action | Command |
+|--------|---------|
+| Test | `npm test` |
+| Lint | `npm run lint` |
+| Build | `npm run build` |
+| Dev | `npm run dev` |
+| Type check | `npx tsc --noEmit` |
 
-### 4. Goal-Driven Execution
-- Transform tasks into verifiable goals
-- Write tests first when possible
-- State a brief plan for multi-step tasks
-- Define success criteria before implementing
+## Architecture
+```
+src/
+  index.ts           CLI entry, subcommands
+  pipeline.ts        Generation pipeline orchestration
+  analyzer/          Codebase detection (type, framework, deps, patterns)
+  context/           Recommendation engine (scoring, overlap, auto-linking)
+  config/            Presets (14 goal categories), export/import
+  generator/         AI generation via Anthropic SDK
+  writer/            File output (CLAUDE.md, agents, skills, settings, docs)
+  updater/           Incremental config updates
+  cache/             File-based analysis cache
+  cli/               Prompts, banner, colors, UX flow
+  templates/         Agent + skill markdown templates (21 agents, 23 skills)
+  types/             All type definitions
+  utils/             Auth, logger, version check
+tests/               Vitest test suites
+```
 
+## Agents (3)
+- **backend-engineer** — pipeline, analyzer, generator, writer, recommendation engine
+- **copywriter** — CLI text, success messages, error messages, generated content copy
+- **testing-specialist** — Vitest test suites, coverage, test patterns
 
-## Skill Usage Guide
+## Skills (2)
+- **typescript** — strict mode, ESM, import conventions, Zod integration
+- **nodejs** — Node 20+, ESM, CLI stack (commander, clack, picocolors, fs-extra)
 
-When working on tasks involving these technologies, invoke the corresponding skill:
+## Conventions
+- Files: `kebab-case.ts`
+- Imports: Node built-ins -> external -> internal -> types
+- Type imports: `import type { Foo }` always separate
+- Named exports only, no defaults
+- async/await, never raw promise chains
+- Validate at system boundaries only
 
-| Skill | Invoke When |
-|-------|-------------|
-| nodejs | Configures Node.js runtime, module patterns, and server-side APIs |
-| commander | Builds CLI argument parsing, command hierarchies, and option handling |
-| typescript | Enforces TypeScript strict mode, type patterns, and type-safe development |
-| clack | Creates interactive terminal prompts, multi-select inputs, and user interactions |
-| zod | Implements schema validation, type inference, and runtime type checking |
-| vitest | Sets up unit testing, test runners, and test coverage in Vitest |
-| anthropic-sdk | Integrates Claude API calls, streaming, and model selection patterns |
-| cosmiconfig | Manages configuration file discovery and hierarchical config loading |
-| glob | Implements file pattern matching and recursive directory traversal |
-| fs-extra | Handles file system operations, directory creation, and file writing |
+## v2 Phase 1 Priorities (Current Sprint)
+1. Lean config generation (< 700 token CLAUDE.md, "Would Claude Know This?" filter)
+2. Permissions + security defaults in settings.json (infer from project)
+3. Stop hooks for auto-formatting (detect lint/format commands)
+4. First prompt guidance (copy-pasteable prompt in success message)
+5. Agent/skill reduction (2-4 agents max, auto-link skills)
+6. Slash commands generation (`/status`, `/fix`, `/next`, `/ship`)
+7. MCP server suggestions (SETUP.md with install commands)
+
+## Deep Context
+- `.claude/docs/architecture.md` — system overview, pipeline flow, design decisions
+- `.claude/docs/patterns.md` — code patterns, conventions, generation quality rules
+- `PRD_v2.md` — full product requirements document
+
+## Checkpoint
+- **Branch**: v2
+- **Last completed**: UX flow enhancement (selectTeam, overlap suppression, project-specific reasons, preset tuning, lean defaults)
+- **Next**: Phase 1 Sprint 1 — lean CLAUDE.md generation, agent token reduction, "Would Claude Know This?" filter

@@ -42,4 +42,5 @@ export interface Recommendations {
   skills: SkillScore[];
   defaultAgents: string[]; // Pre-selected (high score)
   defaultSkills: string[]; // Pre-selected (high score)
+  agentSkillLinks: Record<string, string[]>; // Agent name → auto-linked skill names
 }
