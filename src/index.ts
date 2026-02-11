@@ -251,6 +251,21 @@ program
     }
   });
 
+// Evolve command
+program
+  .command('evolve')
+  .description('Detect project changes and update your config')
+  .action(async () => {
+    try {
+      const { runEvolve } = await import('./evolve/index.js');
+      await runEvolve(process.cwd());
+    } catch (error) {
+      console.log(pc.red('\n  \u2717 Evolve failed\n'));
+      console.log(pc.dim(`  ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      process.exit(1);
+    }
+  });
+
 // Update command
 program
   .command('update')

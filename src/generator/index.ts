@@ -514,6 +514,7 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
     const allowPerms = [
       'Read(*)',
       'Write(src/**)',
+      'Write(docs/**)',
       `Bash(${pm} *)`,
       'Bash(npx *)',
     ];
@@ -724,6 +725,10 @@ ${patternLines || 'No patterns detected yet.'}
 3. **Surgical**: Touch only what you must, clean up only your own mess
 4. **Verify**: Define success criteria, write tests, loop until green
 
+## Session Continuity
+- Run /recap at end of each session to save progress
+- Check docs/session-recap.md at start of each session for context
+
 ## Deep Context
 See \`.claude/docs/\` for architecture, patterns, and setup details.
 `;
@@ -751,7 +756,9 @@ Report in plain language. No jargon.
       {
         filename: 'fix.md',
         commandName: 'fix',
-        content: `1. Run \`${build}\` and capture errors
+        content: `If a problem description follows this command, investigate that specific issue first.
+Otherwise:
+1. Run \`${build}\` and capture errors
 2. Run \`${lint}\` and capture errors
 3. Fix all errors you find
 4. Run build again to verify
@@ -761,10 +768,22 @@ Report in plain language. No jargon.
       {
         filename: 'next.md',
         commandName: 'next',
-        content: `Read CLAUDE.md and ROADMAP.md (if exists). Based on current project state:
-1. What has already been built? (check existing files)
+        content: `Read CLAUDE.md and ROADMAP.md (if exists). Check docs/session-recap.md for context from last session.
+Based on current project state:
+1. What has already been built? (check existing files and git log)
 2. What is the next logical step?
 3. Describe the task clearly and ask if I should proceed.
+`
+      },
+      {
+        filename: 'recap.md',
+        commandName: 'recap',
+        content: `Summarize this session:
+1. What files were created or changed?
+2. What features were added or fixed?
+3. What's still incomplete or broken?
+4. What should I start with next time?
+Write a concise summary (< 20 lines) I can paste into my next session.
 `
       },
       {
