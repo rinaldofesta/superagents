@@ -33,12 +33,13 @@ TypeScript CLI | Node.js >= 20 | ESM | @anthropic-ai/sdk, @clack/prompts, comman
 
 ```
 src/
-  index.ts           CLI entry, subcommands (status, update, cache, templates, export, import)
+  index.ts           CLI entry, subcommands (status, evolve, update, cache, templates, export, import)
   pipeline.ts        Generation pipeline orchestration
   analyzer/          Codebase detection (type, framework, deps, patterns)
   blueprints/        Project blueprints (definitions, matcher, renderer)
   context/           Recommendation engine (scoring, overlap, auto-linking)
   config/            Presets (14 goal categories), export/import
+  evolve/            Config evolution (differ, proposer, display)
   generator/         AI generation via Anthropic SDK
   status/            ROADMAP.md parser and progress display
   writer/            File output (CLAUDE.md, ROADMAP.md, agents, skills, settings, docs)
@@ -46,14 +47,15 @@ src/
   cache/             File-based analysis cache
   cli/               Prompts, banner, colors, UX flow
   templates/         Agent + skill markdown templates (21 agents, 23 skills)
-  types/             All type definitions (includes blueprint.ts)
+  types/             All type definitions (includes blueprint.ts, evolve.ts)
+  prompts/           Compressed AI prompt templates
   utils/             Auth, logger, version check
-tests/               Vitest test suites
+tests/               Vitest test suites (65 tests)
 ```
 
 ## Agents (3)
 
-- **backend-engineer** — pipeline, analyzer, generator, writer, recommendation engine
+- **backend-engineer** — pipeline, analyzer, generator, writer, recommendation engine, evolve
 - **copywriter** — CLI text, success messages, error messages, generated content copy
 - **testing-specialist** — Vitest test suites, coverage, test patterns
 
@@ -79,8 +81,11 @@ Lean config generation, permissions/security defaults, Stop hooks, first prompt 
 ### Phase 2 (Complete)
 Project Blueprints — 5 curated templates (SaaS Dashboard, Landing+Waitlist, API Backend, Internal Tool, Marketplace) with phased ROADMAP.md generation. Blueprint matcher (category/keyword/stack/focus scoring). `superagents status` command with per-phase progress bars.
 
-### Phase 3 (Next)
-Config evolution, blueprint publishing, expanded test coverage.
+### Phase 3 (Complete)
+Session Memory & Evolving Config — `/recap` slash command for session summaries, enhanced `/next` (reads session recaps + git log), enhanced `/fix` (plain language error description support), `Write(docs/**)` permission, Session Continuity section in generated CLAUDE.md, `superagents evolve` CLI subcommand (differ, proposer, display). 65 tests passing.
+
+### Phase 4 (Next)
+Platform & Ecosystem — blueprint publishing (`superagents publish`), blueprint marketplace, Entire integration, team handoff protocol.
 
 ## Deep Context
 
@@ -91,5 +96,5 @@ Config evolution, blueprint publishing, expanded test coverage.
 ## Checkpoint
 
 - **Branch**: v2
-- **Last completed**: Phase 2 — Project Blueprints (5 blueprints, matcher, renderer, ROADMAP.md writer, `superagents status` command)
-- **Next**: Phase 3 — config evolution (`superagents evolve`), blueprint publishing, test coverage expansion
+- **Last completed**: Phase 3 — Session Memory & Evolving Config (/recap, enhanced /next + /fix, `superagents evolve`, differ/proposer/display, 21 new tests)
+- **Next**: Phase 4 — Platform & Ecosystem (blueprint publishing, marketplace, Entire integration, team handoff)
