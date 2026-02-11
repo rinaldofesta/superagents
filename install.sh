@@ -102,14 +102,19 @@ install_superagents() {
 
     echo -e "${GREEN}✓${NC} Downloaded SuperAgents"
 
-    # Install dependencies
+    # Install dependencies and build
     echo ""
     echo -e "${ORANGE}Installing dependencies...${NC}"
     cd "$INSTALL_DIR"
-    npm install --production
+    npm install
     echo -e "${GREEN}✓${NC} Dependencies installed"
 
-    # Create symlink (dist/ is pre-built in the repo)
+    echo ""
+    echo -e "${ORANGE}Building...${NC}"
+    npm run build
+    echo -e "${GREEN}✓${NC} Build complete"
+
+    # Create symlink
     echo ""
     echo -e "${ORANGE}Creating command link...${NC}"
     ln -sf "$INSTALL_DIR/bin/superagents" "$BIN_DIR/superagents"

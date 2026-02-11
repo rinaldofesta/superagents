@@ -26,6 +26,11 @@ SuperAgents creates specialized AI agents and framework skills tailored to your 
 
 ### Commands
 - [Generate](commands/generate.md) - Main generation command
+- [Status](commands/status.md) - Show project progress from ROADMAP.md
+- [Evolve](commands/evolve.md) - Detect project changes and update config
+- [Handoff](commands/handoff.md) - Generate HANDOFF.md for developer hand-off
+- [Publish](commands/publish.md) - Package project as a reusable blueprint
+- [Use](commands/use.md) - Install a published blueprint
 - [Update](commands/update.md) - Update SuperAgents
 - [Cache](commands/cache.md) - Manage cache
 - [Templates](commands/templates.md) - Template management

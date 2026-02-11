@@ -49,6 +49,74 @@ superagents -h
 
 ## Subcommands
 
+### status
+
+Show project progress from ROADMAP.md:
+
+```bash
+superagents status
+```
+
+No options. Reads `ROADMAP.md` and displays per-phase progress bars. See [Status Command](../commands/status.md).
+
+### evolve
+
+Detect project changes and propose config updates:
+
+```bash
+superagents evolve
+```
+
+No options. Re-scans codebase and proposes changes. See [Evolve Command](../commands/evolve.md).
+
+### handoff
+
+Generate HANDOFF.md for developer hand-off:
+
+```bash
+superagents handoff
+```
+
+No options. Gathers project context and writes `HANDOFF.md`. See [Handoff Command](../commands/handoff.md).
+
+### publish
+
+Package your project as a reusable blueprint:
+
+```bash
+superagents publish [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <path>` | Output directory for the blueprint zip |
+
+See [Publish Command](../commands/publish.md).
+
+### use
+
+Install a published blueprint from a file or URL:
+
+```bash
+superagents use <source> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Replace existing configuration |
+| `--preview` | Show contents without installing |
+
+Examples:
+
+```bash
+superagents use ./my-blueprint.zip
+superagents use https://example.com/blueprint.zip
+superagents use ./blueprint.zip --preview
+superagents use ./blueprint.zip --force
+```
+
+See [Use Command](../commands/use.md).
+
 ### update
 
 Update SuperAgents to latest version:
@@ -335,7 +403,7 @@ superagents --version
 ```
 
 ```
-1.3.1
+1.5.0
 ```
 
 ### --help (-h)
@@ -359,6 +427,11 @@ Options:
   -h, --help            Show help
 
 Commands:
+  status                Show project progress from ROADMAP.md
+  evolve                Detect project changes and update config
+  handoff               Generate HANDOFF.md for developer hand-off
+  publish [options]     Package project as a reusable blueprint
+  use <source>          Install a published blueprint
   update                Update SuperAgents to latest version
   cache [options]       Manage cache
   templates [options]   Manage templates
@@ -369,6 +442,11 @@ Examples:
   superagents                        Generate configuration
   superagents --dry-run              Preview generation
   superagents --update               Update existing config
+  superagents status                 View roadmap progress
+  superagents evolve                 Update config for project changes
+  superagents handoff                Generate hand-off document
+  superagents publish                Package as reusable blueprint
+  superagents use ./blueprint.zip    Install a published blueprint
   superagents cache --stats          View cache statistics
   superagents templates --list       List templates
   superagents export config.zip      Export configuration

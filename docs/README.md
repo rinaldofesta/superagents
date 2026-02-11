@@ -36,6 +36,11 @@ Configure SuperAgents for your specific needs.
 Guides for specific command usage.
 
 - [Generate](commands/generate.md) - Main generation command with all options
+- [Status](commands/status.md) - Show project progress from ROADMAP.md
+- [Evolve](commands/evolve.md) - Detect project changes and update config
+- [Handoff](commands/handoff.md) - Generate HANDOFF.md for developer hand-off
+- [Publish](commands/publish.md) - Package project as a reusable blueprint
+- [Use](commands/use.md) - Install a published blueprint from file or URL
 - [Update](commands/update.md) - Update SuperAgents or modify configurations
 - [Cache](commands/cache.md) - Manage cache statistics and clearing
 - [Templates](commands/templates.md) - List, export, import, and delete templates
@@ -121,7 +126,7 @@ Documentation files are in `/docs` and written in Markdown.
 
 ## Documentation Version
 
-This documentation corresponds to **SuperAgents v1.3.1**.
+This documentation corresponds to **SuperAgents v1.5.0**.
 
 For older versions, see the [GitHub releases](https://github.com/Play-New/superagents/releases).
 
