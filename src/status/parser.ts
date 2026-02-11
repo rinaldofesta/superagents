@@ -5,7 +5,7 @@
 export interface ParsedPhase {
   number: number;
   name: string;
-  tasks: { title: string; done: boolean }[];
+  tasks: { title: string; done: boolean; description?: string }[];
 }
 
 /**
@@ -39,6 +39,15 @@ export function parseRoadmap(content: string): ParsedPhase[] {
         title: taskMatch[2].trim(),
         done: taskMatch[1].toLowerCase() === 'x'
       });
+      continue;
+    }
+
+    // Match description lines: two-space indent under a task
+    if (line.match(/^ {2}\S/) && currentPhase && currentPhase.tasks.length > 0) {
+      const lastTask = currentPhase.tasks[currentPhase.tasks.length - 1];
+      if (!lastTask.description) {
+        lastTask.description = line.trim();
+      }
     }
   }
 

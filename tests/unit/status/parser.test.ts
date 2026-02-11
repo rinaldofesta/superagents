@@ -24,8 +24,8 @@ Get started
     expect(phases[0].number).toBe(1);
     expect(phases[0].name).toBe('Foundation');
     expect(phases[0].tasks).toHaveLength(2);
-    expect(phases[0].tasks[0]).toEqual({ title: 'Set up project', done: false });
-    expect(phases[0].tasks[1]).toEqual({ title: 'Add auth', done: false });
+    expect(phases[0].tasks[0]).toEqual({ title: 'Set up project', done: false, description: 'Description here' });
+    expect(phases[0].tasks[1]).toEqual({ title: 'Add auth', done: false, description: 'Auth description' });
   });
 
   it('should parse multiple phases', () => {
@@ -154,5 +154,46 @@ Nothing here yet
 
     expect(phases[0].number).toBe(3);
     expect(phases[1].number).toBe(7);
+  });
+
+  it('should capture task descriptions from indented lines', () => {
+    const content = `## Phase 1: Setup
+
+- [ ] Install dependencies
+  Run npm install to get started
+- [x] Configure TypeScript
+  Set up tsconfig.json with strict mode
+`;
+
+    const phases = parseRoadmap(content);
+
+    expect(phases[0].tasks[0].description).toBe('Run npm install to get started');
+    expect(phases[0].tasks[1].description).toBe('Set up tsconfig.json with strict mode');
+  });
+
+  it('should leave description undefined when no indented line follows', () => {
+    const content = `## Phase 1: Quick
+
+- [ ] Task without description
+- [ ] Another bare task
+`;
+
+    const phases = parseRoadmap(content);
+
+    expect(phases[0].tasks[0].description).toBeUndefined();
+    expect(phases[0].tasks[1].description).toBeUndefined();
+  });
+
+  it('should only capture first indented line as description', () => {
+    const content = `## Phase 1: Detailed
+
+- [ ] Multi-line task
+  First description line
+  Second line should be ignored
+`;
+
+    const phases = parseRoadmap(content);
+
+    expect(phases[0].tasks[0].description).toBe('First description line');
   });
 });

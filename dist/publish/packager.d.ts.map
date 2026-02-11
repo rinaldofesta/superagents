@@ -1,0 +1,1 @@
+{"version":3,"file":"packager.d.ts","sourceRoot":"","sources":["../../src/publish/packager.ts"],"names":[],"mappings":"AAAA;;GAEG;AAUH,OAAO,KAAK,EAAE,sBAAsB,EAAE,MAAM,iCAAiC,CAAC;AAE9E,wBAAsB,gBAAgB,CACpC,WAAW,EAAE,MAAM,EACnB,IAAI,EAAE,sBAAsB,EAC5B,UAAU,EAAE,MAAM,GACjB,OAAO,CAAC,MAAM,CAAC,CAuCjB"}

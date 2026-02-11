@@ -266,6 +266,54 @@ program
     }
   });
 
+// Handoff command
+program
+  .command('handoff')
+  .description('Generate HANDOFF.md for developer hand-off')
+  .action(async () => {
+    try {
+      const { runHandoff } = await import('./handoff/index.js');
+      await runHandoff(process.cwd());
+    } catch (error) {
+      console.log(pc.red('\n  ✗ Handoff failed\n'));
+      console.log(pc.dim(`  ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      process.exit(1);
+    }
+  });
+
+// Publish command
+program
+  .command('publish')
+  .description('Package your project as a reusable blueprint')
+  .option('-o, --output <path>', 'Output directory for the blueprint zip')
+  .action(async (options: { output?: string }) => {
+    try {
+      const { runPublish } = await import('./publish/index.js');
+      await runPublish(process.cwd(), options.output);
+    } catch (error) {
+      console.log(pc.red('\n  ✗ Publish failed\n'));
+      console.log(pc.dim(`  ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      process.exit(1);
+    }
+  });
+
+// Use command
+program
+  .command('use <source>')
+  .description('Install a published blueprint from a file or URL')
+  .option('-f, --force', 'Replace existing configuration')
+  .option('--preview', 'Show blueprint contents without installing')
+  .action(async (source: string, options: { force?: boolean; preview?: boolean }) => {
+    try {
+      const { runUse } = await import('./use/index.js');
+      await runUse(source, process.cwd(), options);
+    } catch (error) {
+      console.log(pc.red('\n  ✗ Install failed\n'));
+      console.log(pc.dim(`  ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+      process.exit(1);
+    }
+  });
+
 // Update command
 program
   .command('update')

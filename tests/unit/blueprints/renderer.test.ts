@@ -90,8 +90,8 @@ describe('renderRoadmap', () => {
       expect(parsed[0].number).toBe(1);
       expect(parsed[0].name).toBe('Foundation');
       expect(parsed[0].tasks).toHaveLength(2);
-      expect(parsed[0].tasks[0]).toEqual({ title: 'Set up project', done: false });
-      expect(parsed[0].tasks[1]).toEqual({ title: 'Add auth', done: false });
+      expect(parsed[0].tasks[0]).toEqual({ title: 'Set up project', done: false, description: 'Initialize everything' });
+      expect(parsed[0].tasks[1]).toEqual({ title: 'Add auth', done: false, description: 'Authentication flow' });
       expect(parsed[1].number).toBe(2);
       expect(parsed[1].name).toBe('Features');
       expect(parsed[1].tasks).toHaveLength(1);

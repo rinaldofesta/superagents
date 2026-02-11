@@ -7,6 +7,7 @@ export interface ParsedPhase {
     tasks: {
         title: string;
         done: boolean;
+        description?: string;
     }[];
 }
 /**

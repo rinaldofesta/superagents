@@ -186,4 +186,85 @@ export declare const GenerationCacheMetaSchema: z.ZodObject<{
     timestamp: string;
     data: null;
 }>;
+export declare const PublishedBlueprintMetaSchema: z.ZodObject<{
+    format: z.ZodLiteral<"superagents-blueprint">;
+    formatVersion: z.ZodNumber;
+    name: z.ZodString;
+    author: z.ZodString;
+    description: z.ZodString;
+    version: z.ZodString;
+    keywords: z.ZodArray<z.ZodString, "many">;
+    stack: z.ZodArray<z.ZodString, "many">;
+    phases: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        description: z.ZodString;
+        tasks: z.ZodArray<z.ZodObject<{
+            title: z.ZodString;
+            description: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            description: string;
+            title: string;
+        }, {
+            description: string;
+            title: string;
+        }>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        description: string;
+        tasks: {
+            description: string;
+            title: string;
+        }[];
+    }, {
+        name: string;
+        description: string;
+        tasks: {
+            description: string;
+            title: string;
+        }[];
+    }>, "many">;
+    agents: z.ZodArray<z.ZodString, "many">;
+    skills: z.ZodArray<z.ZodString, "many">;
+    publishedAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    version: string;
+    format: "superagents-blueprint";
+    description: string;
+    formatVersion: number;
+    author: string;
+    keywords: string[];
+    stack: string[];
+    phases: {
+        name: string;
+        description: string;
+        tasks: {
+            description: string;
+            title: string;
+        }[];
+    }[];
+    agents: string[];
+    skills: string[];
+    publishedAt: string;
+}, {
+    name: string;
+    version: string;
+    format: "superagents-blueprint";
+    description: string;
+    formatVersion: number;
+    author: string;
+    keywords: string[];
+    stack: string[];
+    phases: {
+        name: string;
+        description: string;
+        tasks: {
+            description: string;
+            title: string;
+        }[];
+    }[];
+    agents: string[];
+    skills: string[];
+    publishedAt: string;
+}>;
 //# sourceMappingURL=index.d.ts.map

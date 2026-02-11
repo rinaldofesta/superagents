@@ -39,4 +39,26 @@ export const CodebaseAnalysisSchema = z.object({
 export const GenerationCacheMetaSchema = CacheEntryMetaSchema.extend({
     data: z.null(),
 });
+// Schema for published blueprint metadata (validated at import boundary)
+export const PublishedBlueprintMetaSchema = z.object({
+    format: z.literal('superagents-blueprint'),
+    formatVersion: z.number(),
+    name: z.string(),
+    author: z.string(),
+    description: z.string(),
+    version: z.string(),
+    keywords: z.array(z.string()),
+    stack: z.array(z.string()),
+    phases: z.array(z.object({
+        name: z.string(),
+        description: z.string(),
+        tasks: z.array(z.object({
+            title: z.string(),
+            description: z.string(),
+        })),
+    })),
+    agents: z.array(z.string()),
+    skills: z.array(z.string()),
+    publishedAt: z.string(),
+});
 //# sourceMappingURL=index.js.map
