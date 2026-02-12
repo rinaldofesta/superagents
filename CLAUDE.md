@@ -21,13 +21,15 @@ TypeScript CLI | Node.js >= 20 | ESM | @anthropic-ai/sdk, @clack/prompts, comman
 
 ## Commands
 
-| Action     | Command            |
-| ---------- | ------------------ |
-| Test       | `npm test`         |
-| Lint       | `npm run lint`     |
-| Build      | `npm run build`    |
-| Dev        | `npm run dev`      |
-| Type check | `npx tsc --noEmit` |
+| Action          | Command                     |
+| --------------- | --------------------------- |
+| Test            | `npm test`                  |
+| Test Coverage   | `npm run test:coverage`     |
+| Coverage Report | `npm run test:coverage:html`|
+| Lint            | `npm run lint`              |
+| Build           | `npm run build`             |
+| Dev             | `npm run dev`               |
+| Type check      | `npx tsc --noEmit`          |
 
 ## Architecture
 
@@ -53,7 +55,8 @@ src/
   types/             All type definitions (includes blueprint.ts, evolve.ts, handoff.ts, published-blueprint.ts)
   prompts/           Compressed AI prompt templates
   utils/             Auth, logger, version check
-tests/               Vitest test suites (248 tests, 17 files)
+tests/               Vitest test suites (439 tests, 27 files, 77-79% coverage)
+  helpers/           Shared mocks (clack, process, fs, fixtures)
 ```
 
 ## Agents (3)
@@ -99,5 +102,5 @@ Handoff & Blueprint Sharing — `superagents handoff` (HANDOFF.md generation wit
 ## Checkpoint
 
 - **Branch**: v2
-- **Last completed**: Test coverage expansion — added 135 tests for core modules (codebase-analyzer 35, model-selector 36, generator 27, writer 21, concurrency 16), fixed ESLint `any` warning in `cli/prompts.ts`. 248 tests across 17 files, 0 type errors, 0 lint warnings.
-- **Next**: Phase 4B if registry infrastructure is ready, or remaining test coverage gaps (pipeline.ts, updater/, config/, cli/, auth, evolve display, handoff collector, publish/use entry points)
+- **Last completed**: Major test coverage expansion — added 191 tests across 10 new test files (Phase 0-4: foundation setup, low/medium/high/very-high complexity modules). Coverage improved from 46% to 77-79% across all metrics. Comprehensive testing of: config (presets, export/import), CLI (dry-run, prompts, progress), handoff/collector, updater, auth, pipeline, evolve/display. Created shared mock utilities (clack, process, fs, fixtures). 439 tests across 27 files, 0 type errors, 0 lint warnings.
+- **Next**: Phase 4B (registry infrastructure) or remaining utility coverage (status/display, generator/progress, logger, version-check)
