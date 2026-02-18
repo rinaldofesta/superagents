@@ -656,4 +656,126 @@ describe('AIGenerator', () => {
         .toThrow('Generation failed for 2/2 agents');
     });
   });
+
+  describe('quality gate in Stop hook', () => {
+    it('should end Stop hook with exit 0 when qualityGate is off', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({
+          lintCommand: 'npm run lint',
+          testCommand: 'npm test',
+        }),
+        qualityGate: 'off',
+      });
+
+      const result = await generator.generateAll(context);
+
+      const stopHook = result.settings.hooks?.Stop?.[0].hooks[0].command;
+      expect(stopHook).toContain('exit 0');
+      expect(stopHook).not.toContain('npm test');
+    });
+
+    it('should include testCommand without exit 0 when qualityGate is hard', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({
+          lintCommand: 'npm run lint',
+          testCommand: 'npm test',
+        }),
+        qualityGate: 'hard',
+      });
+
+      const result = await generator.generateAll(context);
+
+      const stopHook = result.settings.hooks?.Stop?.[0].hooks[0].command;
+      expect(stopHook).toContain('npm test');
+      expect(stopHook).not.toContain('exit 0');
+    });
+
+    it('should include testCommand with warning fallback when qualityGate is soft', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({
+          lintCommand: 'npm run lint',
+          testCommand: 'npm test',
+        }),
+        qualityGate: 'soft',
+      });
+
+      const result = await generator.generateAll(context);
+
+      const stopHook = result.settings.hooks?.Stop?.[0].hooks[0].command;
+      expect(stopHook).toContain('npm test || echo "WARNING: tests failing"');
+      expect(stopHook).toContain('exit 0');
+    });
+
+    it('should fall back to exit 0 when qualityGate is hard but no testCommand', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({
+          lintCommand: 'npm run lint',
+          testCommand: null,
+        }),
+        qualityGate: 'hard',
+      });
+
+      const result = await generator.generateAll(context);
+
+      const stopHook = result.settings.hooks?.Stop?.[0].hooks[0].command;
+      expect(stopHook).toContain('exit 0');
+    });
+  });
+
+  describe('security gate', () => {
+    it('should include PreToolUse hook when securityGate is true', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({ lintCommand: 'npm run lint' }),
+        securityGate: true,
+      });
+
+      const result = await generator.generateAll(context);
+
+      expect(result.settings.hooks?.PreToolUse).toBeDefined();
+      expect(result.settings.hooks?.PreToolUse?.[0].matcher).toBe('Write');
+      expect(result.settings.hooks?.PreToolUse?.[0].hooks[0].command).toContain('security-gate.sh');
+    });
+
+    it('should not include PreToolUse hook when securityGate is false', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({ lintCommand: 'npm run lint' }),
+        securityGate: false,
+      });
+
+      const result = await generator.generateAll(context);
+
+      expect(result.settings.hooks?.PreToolUse).toBeUndefined();
+    });
+
+    it('should add PreToolUse hook even without lint/format commands', async () => {
+      const context = makeContext({
+        codebase: makeCodebase({ lintCommand: null, formatCommand: null }),
+        securityGate: true,
+      });
+
+      const result = await generator.generateAll(context);
+
+      expect(result.settings.hooks?.PreToolUse).toBeDefined();
+      expect(result.settings.hooks?.PreToolUse?.[0].matcher).toBe('Write');
+    });
+
+    it('should return security-gate.sh hook file when securityGate is true', async () => {
+      const context = makeContext({ securityGate: true });
+
+      const result = await generator.generateAll(context);
+
+      expect(result.hooks).toHaveLength(1);
+      expect(result.hooks[0].filename).toBe('security-gate.sh');
+      expect(result.hooks[0].hookName).toBe('security-gate');
+      expect(result.hooks[0].content).toContain('SECURITY GATE');
+    });
+
+    it('should return empty hooks array when securityGate is falsy', async () => {
+      const context = makeContext({ securityGate: false });
+
+      const result = await generator.generateAll(context);
+
+      expect(result.hooks).toHaveLength(0);
+    });
+  });
 });

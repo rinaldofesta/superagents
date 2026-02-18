@@ -33,6 +33,10 @@ export interface GenerationContext {
   // Blueprint
   selectedBlueprint?: BlueprintId;
 
+  // Quality gates
+  qualityGate?: 'hard' | 'soft' | 'off';
+  securityGate?: boolean;
+
   // Metadata
   generatedAt: string;
 }
@@ -61,6 +65,7 @@ export interface HookConfig {
 }
 
 export interface HookMatcher {
+  matcher?: string;
   hooks: HookConfig[];
 }
 
@@ -77,6 +82,7 @@ export interface SettingsJson {
   hooks?: {
     UserPromptSubmit?: HookMatcher[];
     Stop?: HookMatcher[];
+    PreToolUse?: HookMatcher[];
   };
   model?: string;
 }
@@ -110,7 +116,24 @@ export interface WriteSummary {
   skills: string[];
   commands: string[];
   docs: string[];
+  hooks: string[];
   projectRoot: string;
   claudeDir: string;
   hasRoadmap: boolean;
+}
+
+export interface JsonModeOutput {
+  success: true;
+  mode: 'new' | 'existing';
+  projectRoot: string;
+  agents: string[];
+  skills: string[];
+  filesWritten: string[];
+  warnings: string[];
+}
+
+export interface JsonModeError {
+  success: false;
+  error: string;
+  code: string;
 }

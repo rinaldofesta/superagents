@@ -33,7 +33,7 @@ import { selectModel, getSkillComplexity, getModelDisplayName } from '../utils/m
 
 // Type imports
 import type { GenerationCacheKey } from '../cache/index.js';
-import type { GenerationContext, GeneratedOutputs, AgentOutput, SkillOutput, CommandOutput, DocOutput } from '../types/generation.js';
+import type { GenerationContext, GeneratedOutputs, AgentOutput, SkillOutput, HookOutput, CommandOutput, DocOutput } from '../types/generation.js';
 
 // Max tokens scaled by generation type to optimize API costs
 const MAX_TOKENS_BY_TYPE: Record<string, number> = {
@@ -44,6 +44,37 @@ const MAX_TOKENS_BY_TYPE: Record<string, number> = {
 };
 
 const DEFAULT_MAX_TOKENS = 2000;
+
+const SECURITY_GATE_SCRIPT = `#!/usr/bin/env bash
+# SuperAgents security gate — blocks writes containing hardcoded secrets
+# Exit 2 = block the tool call. Exit 0 = allow.
+
+CONTENT=\$(python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('content', ''))
+except:
+    pass
+" 2>/dev/null)
+
+[ -z "\$CONTENT" ] && exit 0
+
+FOUND=""
+echo "\$CONTENT" | grep -qE 'AKIA[0-9A-Z]{16}' && FOUND="AWS Access Key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'sk-ant-[a-zA-Z0-9_-]{40,}' && FOUND="Anthropic API key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'sk-[a-zA-Z0-9]{48}' && FOUND="OpenAI API key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'ghp_[a-zA-Z0-9]{36}' && FOUND="GitHub token"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'xoxb-[0-9A-Za-z-]{70,}' && FOUND="Slack token"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -q -- '-----BEGIN.*PRIVATE KEY' && FOUND="Private key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -iqE 'password\\\\s*=\\\\s*['"'"'"][^'"'"'"]{8,}' && FOUND="Hardcoded password"
+
+if [ -n "\$FOUND" ]; then
+  echo "SECURITY GATE: Blocked — \$FOUND detected. Use environment variables instead." >&2
+  exit 2
+fi
+exit 0
+`;
 
 export class AIGenerator {
   private codebaseHash: string = '';
@@ -231,7 +262,7 @@ export class AIGenerator {
       });
     }
 
-    const hooks: never[] = [];
+    const hooks = this.buildHookFiles(context);
 
     // Generate docs (template-based, no API calls)
     const docs: DocOutput[] = [
@@ -503,6 +534,15 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
 `;
   }
 
+  private buildHookFiles(context: GenerationContext): HookOutput[] {
+    if (!context.securityGate) return [];
+    return [{
+      filename: 'security-gate.sh',
+      content: SECURITY_GATE_SCRIPT,
+      hookName: 'security-gate'
+    }];
+  }
+
   /**
    * Build settings.json with permissions, deny lists, and optional lint/format hook
    */
@@ -510,6 +550,7 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
     const pm = context.codebase.packageManager;
     const lintCmd = context.codebase.lintCommand;
     const formatCmd = context.codebase.formatCommand;
+    const testCmd = context.codebase.testCommand;
 
     const allowPerms = [
       'Read(*)',
@@ -555,14 +596,40 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
       const hookCommands: string[] = [];
       if (formatCmd) hookCommands.push(`${formatCmd} 2>/dev/null`);
       if (lintCmd) hookCommands.push(`${lintCmd} --fix --quiet 2>/dev/null`);
-      hookCommands.push('exit 0');
 
-      settings.hooks = {
+      const gate = context.qualityGate ?? 'off';
+      if (gate === 'hard' && testCmd) {
+        hookCommands.push(testCmd);
+      } else if (gate === 'soft' && testCmd) {
+        hookCommands.push(`${testCmd} || echo "WARNING: tests failing"`);
+        hookCommands.push('exit 0');
+      } else {
+        hookCommands.push('exit 0');
+      }
+
+      const hooksConfig: Record<string, unknown[]> = {
         Stop: [{
           hooks: [{
             type: 'command' as const,
             command: hookCommands.join('; ')
           }]
+        }]
+      };
+
+      if (context.securityGate) {
+        hooksConfig['PreToolUse'] = [{
+          matcher: 'Write',
+          hooks: [{ type: 'command' as const, command: 'bash .claude/hooks/security-gate.sh' }]
+        }];
+      }
+
+      settings.hooks = hooksConfig;
+    } else if (context.securityGate) {
+      // No lint/format but security gate requested
+      settings.hooks = {
+        PreToolUse: [{
+          matcher: 'Write',
+          hooks: [{ type: 'command' as const, command: 'bash .claude/hooks/security-gate.sh' }]
         }]
       };
     }

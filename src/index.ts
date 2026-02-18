@@ -44,7 +44,7 @@ import { setVerbose, log } from './utils/logger.js';
 import { checkForUpdates, displayUpdateNotification, getCurrentVersion } from './utils/version-check.js';
 
 // Type imports
-import type { GenerationContext } from './types/generation.js';
+import type { GenerationContext, JsonModeOutput, JsonModeError } from './types/generation.js';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -53,6 +53,10 @@ interface CLIOptions {
   dryRun?: boolean;
   verbose?: boolean;
   update?: boolean;
+  json?: boolean;
+  goal?: string;
+  agents?: string;   // comma-separated
+  skills?: string;   // comma-separated
 }
 
 /**
@@ -168,25 +172,34 @@ program
   .option('--dry-run', 'Preview generation without API calls or file changes')
   .option('-v, --verbose', 'Show detailed logs')
   .option('-u, --update', 'Add or remove agents from existing config')
+  .option('--json', 'Non-interactive mode — outputs JSON to stdout')
+  .option('--goal <description>', 'Goal description (skips interactive prompt)')
+  .option('--agents <list>', 'Comma-separated agent names')
+  .option('--skills <list>', 'Comma-separated skill names')
   .action(async (options: CLIOptions) => {
+    let isJsonMode = false;
     try {
       // Set verbose mode
       const isVerbose = options.verbose || false;
       const isDryRun = options.dryRun || false;
+      isJsonMode = options.json || false;
       setVerbose(isVerbose);
 
       log.debug('SuperAgents starting...');
       log.debug(`Working directory: ${process.cwd()}`);
       log.debug(`Dry-run mode: ${isDryRun}`);
       log.debug(`Verbose mode: ${isVerbose}`);
+      log.debug(`JSON mode: ${isJsonMode}`);
 
-      // Display banner
-      displayBanner();
+      // Display banner (skip in JSON mode)
+      if (!isJsonMode) {
+        displayBanner();
+      }
 
       // Start version check in background (non-blocking)
       const updateCheckPromise = checkForUpdates();
 
-      if (isDryRun) {
+      if (isDryRun && !isJsonMode) {
         console.log(pc.yellow('\n  Preview mode: no files will be created\n'));
       }
 
@@ -196,9 +209,24 @@ program
         return;
       }
 
-      // Step 1: AUTHENTICATION FIRST (skip in dry-run)
+      // Step 1: AUTHENTICATION FIRST
       let auth: { method: 'claude-plan' | 'api-key'; apiKey?: string } = { method: 'api-key', apiKey: undefined };
-      if (!isDryRun) {
+      if (isJsonMode) {
+        // JSON mode: use env var or Claude CLI, no interactive prompt
+        const apiKey = process.env['ANTHROPIC_API_KEY'];
+        if (apiKey) {
+          auth = { method: 'api-key', apiKey };
+        } else {
+          try {
+            await execAsync('claude --version');
+            auth = { method: 'claude-plan' };
+          } catch {
+            const err: JsonModeError = { success: false, error: 'No auth available. Set ANTHROPIC_API_KEY or install Claude CLI.', code: 'AUTH_REQUIRED' };
+            process.stdout.write(JSON.stringify(err) + '\n');
+            process.exit(1);
+          }
+        }
+      } else if (!isDryRun) {
         console.log(pc.dim('\n  SuperAgents creates an AI team customized for your project.'));
         console.log(pc.dim('  Sign in to get started \u2014 it only takes a minute.\n'));
         auth = await authenticateWithAnthropic();
@@ -210,28 +238,62 @@ program
         projectRoot: process.cwd(),
         isDryRun,
         isVerbose,
-        auth
+        auth,
+        jsonMode: isJsonMode,
+        goalOverride: options.goal,
+        agentOverrides: options.agents?.split(',').map(s => s.trim()).filter(Boolean),
+        skillOverrides: options.skills?.split(',').map(s => s.trim()).filter(Boolean),
       });
 
-      // Dry-run returns no result
+      // Handle result
       if (result) {
-        displaySuccess(result.summary, result.codebaseAnalysis, result.projectMode);
+        if (isJsonMode) {
+          const output: JsonModeOutput = {
+            success: true,
+            mode: result.projectMode,
+            projectRoot: result.summary.projectRoot,
+            agents: result.summary.agents,
+            skills: result.summary.skills,
+            filesWritten: [
+              ...result.summary.agents.map(a => `.claude/agents/${a}.md`),
+              ...result.summary.skills.map(s => `.claude/skills/${s}.md`),
+              'CLAUDE.md',
+              '.claude/settings.json',
+            ],
+            warnings: [],
+          };
+          process.stdout.write(JSON.stringify(output) + '\n');
+        } else {
+          displaySuccess(result.summary, result.codebaseAnalysis, result.projectMode);
+        }
       }
 
-      // Show update notification if available (after success)
+      // Show update notification if available (skip in JSON mode)
       const updateInfo = await updateCheckPromise;
-      if (updateInfo) {
+      if (updateInfo && !isJsonMode) {
         displayUpdateNotification(updateInfo);
       }
 
     } catch (error) {
       if (error instanceof Error) {
         log.debug(`Error: ${error.stack}`);
-        displayError(error.message);
-        process.exit(getExitCodeForError(error));
+        if (isJsonMode) {
+          const err: JsonModeError = { success: false, error: error.message, code: toJsonErrorCode(error) };
+          process.stdout.write(JSON.stringify(err) + '\n');
+          process.exit(1);
+        } else {
+          displayError(error.message);
+          process.exit(getExitCodeForError(error));
+        }
       } else {
-        displayError('An unknown error occurred');
-        process.exit(EXIT_CODES.SYSTEM_ERROR);
+        if (isJsonMode) {
+          const err: JsonModeError = { success: false, error: 'An unknown error occurred', code: 'UNKNOWN_ERROR' };
+          process.stdout.write(JSON.stringify(err) + '\n');
+          process.exit(1);
+        } else {
+          displayError('An unknown error occurred');
+          process.exit(EXIT_CODES.SYSTEM_ERROR);
+        }
       }
     }
   });
@@ -575,6 +637,13 @@ function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function toJsonErrorCode(error: Error): string {
+  if (error.message.includes('auth') || error.message.includes('API key')) return 'AUTH_REQUIRED';
+  if (error.message.includes('No agents')) return 'INVALID_SELECTION';
+  if (error.message.includes('Generation failed')) return 'GENERATION_FAILED';
+  return 'UNKNOWN_ERROR';
 }
 
 program.parse();

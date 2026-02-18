@@ -17,7 +17,7 @@ import { OutputWriter } from '../../src/writer/index.js';
 
 import type { CodebaseAnalysis } from '../../src/types/codebase.js';
 import type { Recommendations } from '../../src/types/config.js';
-import type { GenerationOutput, WriteSummary } from '../../src/types/generation.js';
+import type { WriteSummary } from '../../src/types/generation.js';
 import type { ProjectGoal, ProjectMode, ProjectSpec } from '../../src/types/goal.js';
 import type { AuthResult } from '../../src/utils/auth.js';
 
@@ -107,20 +107,29 @@ function makeRecommendations(): Recommendations {
   };
 }
 
-function makeGenerationOutputs(): GenerationOutput[] {
-  return [
-    {
-      type: 'claude-md',
-      content: '# Project Config',
-      path: '.claude/CLAUDE.md',
-    },
-  ];
+function makeGenerationOutputs() {
+  return {
+    claudeMd: '# Project Config',
+    agents: [{ filename: 'backend-engineer.md', content: '# Backend', agentName: 'backend-engineer' }],
+    skills: [{ filename: 'typescript.md', content: '# TS', skillName: 'typescript' }],
+    hooks: [],
+    commands: [{ filename: 'status.md', content: '# Status', commandName: 'status' }],
+    settings: { agents: ['backend-engineer'], skills: ['typescript'], model: 'sonnet', permissions: { allow: [], deny: [] } },
+    docs: [],
+  };
 }
 
 function makeWriteSummary(): WriteSummary {
   return {
-    written: ['.claude/CLAUDE.md'],
-    skipped: [],
+    totalFiles: 5,
+    agents: ['backend-engineer'],
+    skills: ['typescript'],
+    commands: ['status'],
+    docs: [],
+    hooks: [],
+    projectRoot: '/test',
+    claudeDir: '/test/.claude',
+    hasRoadmap: false,
   };
 }
 
@@ -172,6 +181,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       // Mock recommendation engine
@@ -231,6 +241,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -290,6 +301,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -360,6 +372,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -402,6 +415,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -439,6 +453,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -489,6 +504,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -535,6 +551,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -581,6 +598,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: ['nodejs'],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -665,6 +683,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -691,6 +710,284 @@ describe('runGenerationPipeline', () => {
         expect.objectContaining({
           selectedBlueprint: 'saas-dashboard',
         })
+      );
+    });
+  });
+
+  describe('JSON mode', () => {
+    it('should skip collectProjectGoal when jsonMode and goalOverride are set', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.categorizeGoalFromText).mockReturnValue('api-service');
+      vi.mocked(prompts.computeAutoLinkedSkills).mockReturnValue([]);
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: vi.fn().mockResolvedValue(makeGenerationOutputs()),
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+        jsonMode: true,
+        goalOverride: 'Build a REST API',
+      });
+
+      expect(prompts.collectProjectGoal).not.toHaveBeenCalled();
+    });
+
+    it('should skip selectModel when jsonMode is true', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.categorizeGoalFromText).mockReturnValue('api-service');
+      vi.mocked(prompts.computeAutoLinkedSkills).mockReturnValue([]);
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      const mockGenerateAll = vi.fn().mockResolvedValue(makeGenerationOutputs());
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: mockGenerateAll,
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+        jsonMode: true,
+        goalOverride: 'Build a REST API',
+      });
+
+      expect(prompts.selectModel).not.toHaveBeenCalled();
+      expect(mockGenerateAll).toHaveBeenCalledWith(
+        expect.objectContaining({ selectedModel: 'sonnet' })
+      );
+    });
+
+    it('should skip selectTeam when jsonMode is true', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.categorizeGoalFromText).mockReturnValue('api-service');
+      vi.mocked(prompts.computeAutoLinkedSkills).mockReturnValue([]);
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: vi.fn().mockResolvedValue(makeGenerationOutputs()),
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+        jsonMode: true,
+        goalOverride: 'Build a REST API',
+      });
+
+      expect(prompts.selectTeam).not.toHaveBeenCalled();
+    });
+
+    it('should use agentOverrides when provided in JSON mode', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.categorizeGoalFromText).mockReturnValue('api-service');
+      vi.mocked(prompts.computeAutoLinkedSkills).mockReturnValue([]);
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      const mockGenerateAll = vi.fn().mockResolvedValue(makeGenerationOutputs());
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: mockGenerateAll,
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+        jsonMode: true,
+        goalOverride: 'Build a REST API',
+        agentOverrides: ['frontend-engineer', 'testing-specialist'],
+      });
+
+      expect(mockGenerateAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          selectedAgents: ['frontend-engineer', 'testing-specialist'],
+        })
+      );
+    });
+  });
+
+  describe('quality gate and security gate propagation', () => {
+    it('should propagate qualityGate from selections to context', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockGoal = makeProjectGoal();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.collectProjectGoal).mockResolvedValue({
+        description: mockGoal.description,
+        category: mockGoal.category,
+      });
+      vi.mocked(prompts.selectModel).mockResolvedValue('sonnet');
+      vi.mocked(prompts.selectTeam).mockResolvedValue({
+        agents: ['backend-engineer'],
+        skills: ['typescript'],
+        autoLinkedSkills: [],
+        qualityGate: 'hard',
+      });
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      const mockGenerateAll = vi.fn().mockResolvedValue(makeGenerationOutputs());
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: mockGenerateAll,
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+      });
+
+      expect(mockGenerateAll).toHaveBeenCalledWith(
+        expect.objectContaining({ qualityGate: 'hard' })
+      );
+    });
+
+    it('should set securityGate to true when security-analyst is in agents', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockGoal = makeProjectGoal();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.collectProjectGoal).mockResolvedValue({
+        description: mockGoal.description,
+        category: mockGoal.category,
+      });
+      vi.mocked(prompts.selectModel).mockResolvedValue('sonnet');
+      vi.mocked(prompts.selectTeam).mockResolvedValue({
+        agents: ['backend-engineer', 'security-analyst'],
+        skills: ['typescript'],
+        autoLinkedSkills: [],
+        qualityGate: 'off',
+      });
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      const mockGenerateAll = vi.fn().mockResolvedValue(makeGenerationOutputs());
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: mockGenerateAll,
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+      });
+
+      expect(mockGenerateAll).toHaveBeenCalledWith(
+        expect.objectContaining({ securityGate: true })
+      );
+    });
+
+    it('should set securityGate to false when security-analyst is not in agents', async () => {
+      const mockCodebase = makeCodebaseAnalysis();
+      const mockGoal = makeProjectGoal();
+      const mockRecommendations = makeRecommendations();
+
+      vi.mocked(prompts.detectProjectMode).mockResolvedValue('existing');
+      vi.mocked(cache.getCachedAnalysis).mockResolvedValue(mockCodebase);
+      vi.mocked(prompts.collectProjectGoal).mockResolvedValue({
+        description: mockGoal.description,
+        category: mockGoal.category,
+      });
+      vi.mocked(prompts.selectModel).mockResolvedValue('sonnet');
+      vi.mocked(prompts.selectTeam).mockResolvedValue({
+        agents: ['backend-engineer'],
+        skills: ['typescript'],
+        autoLinkedSkills: [],
+        qualityGate: 'off',
+      });
+
+      vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
+        recommend: vi.fn().mockReturnValue(mockRecommendations),
+      } as unknown as RecommendationEngine; });
+
+      const mockGenerateAll = vi.fn().mockResolvedValue(makeGenerationOutputs());
+      vi.mocked(AIGenerator).mockImplementation(function(this: AIGenerator) { return {
+        generateAll: mockGenerateAll,
+      } as unknown as AIGenerator; });
+
+      vi.mocked(OutputWriter).mockImplementation(function(this: OutputWriter) { return {
+        writeAll: vi.fn().mockResolvedValue(makeWriteSummary()),
+      } as unknown as OutputWriter; });
+
+      await runGenerationPipeline({
+        projectRoot: '/test',
+        isDryRun: false,
+        isVerbose: false,
+        auth: makeAuth(),
+      });
+
+      expect(mockGenerateAll).toHaveBeenCalledWith(
+        expect.objectContaining({ securityGate: false })
       );
     });
   });
@@ -731,6 +1028,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {
@@ -767,6 +1065,7 @@ describe('runGenerationPipeline', () => {
         agents: ['backend-engineer'],
         skills: ['typescript'],
         autoLinkedSkills: [],
+        qualityGate: 'off',
       });
 
       vi.mocked(RecommendationEngine).mockImplementation(function(this: RecommendationEngine) { return {

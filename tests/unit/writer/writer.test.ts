@@ -374,6 +374,113 @@ describe('OutputWriter', () => {
     });
   });
 
+  describe('forceOverwrite mode', () => {
+    it('should skip confirmOverwrite prompt when forceOverwrite is true', async () => {
+      const forceWriter = new OutputWriter(tmpDir, true);
+
+      // Create existing .claude directory
+      await fs.ensureDir(path.join(tmpDir, '.claude'));
+      await fs.writeFile(path.join(tmpDir, '.claude', 'old-file.md'), 'old content');
+
+      const outputs = createOutputs();
+      const summary = await forceWriter.writeAll(outputs);
+
+      expect(confirmOverwrite).not.toHaveBeenCalled();
+      expect(summary.totalFiles).toBeGreaterThan(0);
+      // Old file should be removed
+      expect(await fs.pathExists(path.join(tmpDir, '.claude', 'old-file.md'))).toBe(false);
+    });
+
+    it('should still call confirmOverwrite when forceOverwrite is false and dir exists', async () => {
+      const normalWriter = new OutputWriter(tmpDir, false);
+
+      await fs.ensureDir(path.join(tmpDir, '.claude'));
+
+      vi.mocked(confirmOverwrite).mockResolvedValue(true);
+
+      const outputs = createOutputs();
+      await normalWriter.writeAll(outputs);
+
+      expect(confirmOverwrite).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('hook files', () => {
+    it('should create hooks directory when hooks are present', async () => {
+      const outputs = createOutputs({
+        hooks: [
+          { filename: 'security-gate.sh', content: '#!/usr/bin/env bash\nexit 0', hookName: 'security-gate' }
+        ]
+      });
+      await writer.writeAll(outputs);
+
+      expect(await fs.pathExists(path.join(tmpDir, '.claude', 'hooks'))).toBe(true);
+    });
+
+    it('should write hook file with correct content', async () => {
+      const hookContent = '#!/usr/bin/env bash\necho "hook"';
+      const outputs = createOutputs({
+        hooks: [
+          { filename: 'security-gate.sh', content: hookContent, hookName: 'security-gate' }
+        ]
+      });
+      await writer.writeAll(outputs);
+
+      const hookPath = path.join(tmpDir, '.claude', 'hooks', 'security-gate.sh');
+      expect(await fs.pathExists(hookPath)).toBe(true);
+      const content = await fs.readFile(hookPath, 'utf-8');
+      expect(content).toBe(hookContent);
+    });
+
+    it('should make hook files executable', async () => {
+      const outputs = createOutputs({
+        hooks: [
+          { filename: 'security-gate.sh', content: '#!/usr/bin/env bash\nexit 0', hookName: 'security-gate' }
+        ]
+      });
+      await writer.writeAll(outputs);
+
+      const hookPath = path.join(tmpDir, '.claude', 'hooks', 'security-gate.sh');
+      const stat = await fs.stat(hookPath);
+      // Check executable bit (owner execute = 0o100)
+      expect(stat.mode & 0o100).toBeTruthy();
+    });
+
+    it('should include hooks in totalFiles count', async () => {
+      const outputs = createOutputs({
+        agents: [{ filename: 'backend.md', content: '# B', agentName: 'backend' }],
+        skills: [],
+        commands: [],
+        docs: [],
+        hooks: [
+          { filename: 'security-gate.sh', content: '#!/usr/bin/env bash', hookName: 'security-gate' }
+        ]
+      });
+      const summary = await writer.writeAll(outputs);
+
+      // totalFiles: agents(1) + hooks(1) + CLAUDE.md(1) + settings.json(1) = 4
+      expect(summary.totalFiles).toBe(4);
+    });
+
+    it('should include hook names in WriteSummary', async () => {
+      const outputs = createOutputs({
+        hooks: [
+          { filename: 'security-gate.sh', content: '#!/usr/bin/env bash', hookName: 'security-gate' }
+        ]
+      });
+      const summary = await writer.writeAll(outputs);
+
+      expect(summary.hooks).toEqual(['security-gate']);
+    });
+
+    it('should not create hooks directory when no hooks present', async () => {
+      const outputs = createOutputs({ hooks: [] });
+      await writer.writeAll(outputs);
+
+      expect(await fs.pathExists(path.join(tmpDir, '.claude', 'hooks'))).toBe(false);
+    });
+  });
+
   describe('multiple files', () => {
     it('should write 3 agents and 2 skills correctly', async () => {
       const outputs = createOutputs({

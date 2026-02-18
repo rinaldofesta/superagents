@@ -198,12 +198,14 @@ export interface TeamSelection {
   agents: string[];
   skills: string[];
   autoLinkedSkills: string[];
+  qualityGate: 'hard' | 'soft' | 'off';
 }
 
-export async function selectTeam(recommendations: Recommendations): Promise<TeamSelection> {
+export async function selectTeam(recommendations: Recommendations, options?: { testCommand?: string | null }): Promise<TeamSelection> {
   let agents: string[] = [];
   let skills: string[] = [];
   let autoLinkedSkills: string[] = [];
+  let qualityGate: 'hard' | 'soft' | 'off' = 'off';
   let confirmed = false;
 
   while (!confirmed) {
@@ -328,6 +330,25 @@ export async function selectTeam(recommendations: Recommendations): Promise<Team
 
     if (action === 'confirm') {
       confirmed = true;
+
+      // Quality gate prompt — only show if testing-specialist selected and test command available
+      if (agents.includes('testing-specialist') && options?.testCommand) {
+        type QualityGateValue = 'hard' | 'soft' | 'off';
+        const gate = await p.select<{ value: QualityGateValue; label: string; hint: string }[], QualityGateValue>({
+          message: 'Enable test quality gate?',
+          options: [
+            { value: 'off', label: 'Off', hint: 'Claude can stop anytime (current)' },
+            { value: 'soft', label: 'Soft', hint: 'Warn if tests fail, allow stop' },
+            { value: 'hard', label: 'Hard', hint: 'Block stop until tests pass' },
+          ],
+          initialValue: 'off'
+        });
+        if (p.isCancel(gate)) {
+          p.cancel('Operation cancelled');
+          process.exit(0);
+        }
+        qualityGate = gate;
+      }
     } else {
       agents = [];
       skills = [];
@@ -335,10 +356,10 @@ export async function selectTeam(recommendations: Recommendations): Promise<Team
     }
   }
 
-  return { agents, skills, autoLinkedSkills };
+  return { agents, skills, autoLinkedSkills, qualityGate };
 }
 
-function computeAutoLinkedSkills(selectedAgents: string[], recommendations: Recommendations): string[] {
+export function computeAutoLinkedSkills(selectedAgents: string[], recommendations: Recommendations): string[] {
   const availableSkillNames = new Set(
     recommendations.skills.filter(s => s.score > 0).map(s => s.name)
   );
@@ -647,3 +668,5 @@ function inferCategoryFromCodebase(analysis: CodebaseAnalysis): GoalCategory {
 
   return 'custom';
 }
+
+export { categorizeGoal as categorizeGoalFromText };
