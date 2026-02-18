@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { glob } from 'glob';
 import type { CodebaseAnalysis, ProjectType, Framework, ProgrammingLanguage, SampledFile, MonorepoInfo, MonorepoPackage, MonorepoTool, PackageManager, NegativeConstraint, McpSuggestion } from '../types/codebase.js';
+import { EXTENSION_TO_LANGUAGE, CLI_DEPS, SERVER_DEPS, ENTRY_POINTS, NEGATIVE_CONSTRAINT_GROUPS } from './constants.js';
 
 /** Default ignore patterns always applied to glob operations */
 const DEFAULT_IGNORE_PATTERNS = [
@@ -153,20 +154,6 @@ export class CodebaseAnalyzer {
   }
 
   private async detectPrimaryLanguage(userIgnorePatterns: string[] = []): Promise<ProgrammingLanguage | null> {
-    const extensionToLanguage: Record<string, ProgrammingLanguage> = {
-      ts: 'typescript',
-      tsx: 'typescript',
-      js: 'javascript',
-      jsx: 'javascript',
-      py: 'python',
-      go: 'go',
-      rs: 'rust',
-      java: 'java',
-      cs: 'csharp',
-      php: 'php',
-      rb: 'ruby'
-    };
-
     try {
       const codeFiles = await glob('**/*.{ts,tsx,js,jsx,py,go,rs,java,cs,php,rb}', {
         cwd: this.projectRoot,
@@ -177,7 +164,7 @@ export class CodebaseAnalyzer {
       const counts = new Map<ProgrammingLanguage, number>();
       for (const file of codeFiles) {
         const ext = file.split('.').pop() || '';
-        const lang = extensionToLanguage[ext];
+        const lang = EXTENSION_TO_LANGUAGE[ext];
         if (lang) {
           counts.set(lang, (counts.get(lang) || 0) + 1);
         }
@@ -238,9 +225,7 @@ export class CodebaseAnalyzer {
       if (deps['express'] || deps['fastify']) return 'node';
 
       // CLI tools and generic Node.js projects
-      const cliDeps = ['commander', 'yargs', 'oclif', 'ink', 'meow', 'cac', 'citty'];
-      const serverDeps = ['@nestjs/core', 'koa', 'hapi', '@hapi/hapi', 'restify'];
-      if (cliDeps.some(d => deps[d]) || serverDeps.some(d => deps[d])) return 'node';
+      if (CLI_DEPS.some(d => deps[d]) || SERVER_DEPS.some(d => deps[d])) return 'node';
 
       // package.json with a `bin` field is a Node.js CLI project
       if (pkg.bin) return 'node';
@@ -715,18 +700,7 @@ export class CodebaseAnalyzer {
       }
 
       // Try to find entry point files
-      const entryPoints = [
-        'src/index.ts',
-        'src/index.js',
-        'src/main.ts',
-        'src/main.js',
-        'index.ts',
-        'index.js',
-        'app/layout.tsx',
-        'app/page.tsx'
-      ];
-
-      for (const entryPoint of entryPoints) {
+      for (const entryPoint of ENTRY_POINTS) {
         if (sampledFiles.length >= maxFiles) break;
         await this.tryAddFile(
           sampledFiles,
@@ -905,20 +879,7 @@ export class CodebaseAnalyzer {
     const depNames = new Set(allDeps.map(d => d.name));
     const constraints: NegativeConstraint[] = [];
 
-    const groups: Array<[string, string][]> = [
-      [['prisma', 'Prisma'], ['drizzle-orm', 'Drizzle']],
-      [['vitest', 'Vitest'], ['jest', 'Jest']],
-      [['tailwindcss', 'Tailwind CSS'], ['styled-components', 'styled-components'], ['@emotion/react', 'Emotion']],
-      [['express', 'Express'], ['fastify', 'Fastify'], ['@nestjs/core', 'NestJS']],
-      [['react', 'React'], ['vue', 'Vue'], ['svelte', 'Svelte'], ['@angular/core', 'Angular']],
-      [['next', 'Next.js'], ['nuxt', 'Nuxt']],
-      [['pino', 'Pino'], ['winston', 'Winston']],
-      [['zod', 'Zod'], ['joi', 'Joi'], ['yup', 'Yup']],
-      [['playwright', 'Playwright'], ['cypress', 'Cypress']],
-      [['@supabase/supabase-js', 'Supabase'], ['firebase', 'Firebase']],
-    ];
-
-    for (const group of groups) {
+    for (const group of NEGATIVE_CONSTRAINT_GROUPS) {
       const installed = group.filter(([pkg]) => depNames.has(pkg));
       const notInstalled = group.filter(([pkg]) => !depNames.has(pkg));
 
