@@ -11,29 +11,37 @@ import pc from 'picocolors';
 
 // Internal modules
 import { CodebaseAnalyzer } from './analyzer/codebase-analyzer.js';
+import { matchBlueprints } from './blueprints/matcher.js';
 import { cache } from './cache/index.js';
 import { displayDryRunPreview } from './cli/dry-run.js';
-import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, confirmSelections } from './cli/prompts.js';
+import { collectProjectGoal, collectNewProjectSpec, detectProjectMode, specToGoal, selectModel, selectTeam, selectBlueprint, computeAutoLinkedSkills, categorizeGoalFromText } from './cli/prompts.js';
 import { RecommendationEngine } from './context/recommendation-engine.js';
 import { AIGenerator } from './generator/index.js';
 import { log } from './utils/logger.js';
 import { OutputWriter } from './writer/index.js';
 
 // Type imports
+import type { BlueprintId } from './types/blueprint.js';
 import type { AuthResult } from './utils/auth.js';
 import type { CodebaseAnalysis } from './types/codebase.js';
 import type { GenerationContext, WriteSummary } from './types/generation.js';
-import type { ProjectGoal, ProjectMode } from './types/goal.js';
+import type { ProjectGoal, ProjectMode, ProjectSpec } from './types/goal.js';
 
 export interface PipelineOptions {
   projectRoot: string;
   isDryRun: boolean;
   isVerbose: boolean;
   auth: AuthResult;
+  jsonMode?: boolean;
+  goalOverride?: string;
+  agentOverrides?: string[];
+  skillOverrides?: string[];
 }
 
 export interface PipelineResult {
   summary: WriteSummary;
+  codebaseAnalysis: CodebaseAnalysis;
+  projectMode: ProjectMode;
 }
 
 /**
@@ -58,14 +66,38 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   // Step 3: Collect goal and analyze codebase
   // For existing projects: analyze first → show detected info → ask focused question
   // For new projects: guided spec gathering → then analyze
-  const spinner = p.spinner();
+  const spinner = options.jsonMode
+    ? { start: (_?: string) => {}, stop: (_?: string) => {} }
+    : p.spinner();
   let codebaseAnalysis: CodebaseAnalysis;
   let goal: ProjectGoal;
+  let selectedBlueprintId: BlueprintId | undefined;
+  let spec: ProjectSpec | undefined;
 
-  if (projectMode === 'new') {
+  if (options.jsonMode && options.goalOverride) {
+    // JSON mode: derive goal from text, skip interactive prompts
+    const category = categorizeGoalFromText(options.goalOverride);
+    goal = {
+      description: options.goalOverride,
+      category,
+      technicalRequirements: [],
+      suggestedAgents: [],
+      suggestedSkills: [],
+      timestamp: new Date().toISOString(),
+      confidence: 1.0
+    };
+    const cachedAnalysis = await cache.getCachedAnalysis(projectRoot);
+    if (cachedAnalysis) {
+      codebaseAnalysis = cachedAnalysis;
+    } else {
+      const analyzer = new CodebaseAnalyzer(projectRoot);
+      codebaseAnalysis = await analyzer.analyze();
+      await cache.setCachedAnalysis(projectRoot, codebaseAnalysis);
+    }
+  } else if (projectMode === 'new') {
     // New project: collect goal first, then analyze
     console.log(pc.dim('  Detected: New/minimal project\n'));
-    const spec = await collectNewProjectSpec();
+    spec = await collectNewProjectSpec();
     const goalData = specToGoal(spec);
     goal = {
       ...goalData,
@@ -76,6 +108,16 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
       timestamp: new Date().toISOString(),
       confidence: 1.0
     };
+
+    // Blueprint matching for new projects
+    const blueprintMatches = matchBlueprints(goal, spec);
+    if (!options.jsonMode && blueprintMatches.length > 0) {
+      const chosen = await selectBlueprint(blueprintMatches);
+      if (chosen) {
+        selectedBlueprintId = chosen;
+        log.debug(`Selected blueprint: ${chosen}`);
+      }
+    }
 
     spinner.start('Scanning your project...');
     const cachedAnalysis = await cache.getCachedAnalysis(projectRoot);
@@ -104,14 +146,16 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
       log.verbose('Codebase analysis cached for future runs');
     }
 
-    log.section('Codebase Analysis');
-    log.table({
-      'Project Type': codebaseAnalysis.projectType,
-      'Language': codebaseAnalysis.language || 'Unknown',
-      'Framework': codebaseAnalysis.framework || 'None',
-      'Total Files': codebaseAnalysis.totalFiles,
-      'Dependencies': codebaseAnalysis.dependencies.length
-    });
+    if (!options.jsonMode) {
+      log.section('Codebase Analysis');
+      log.table({
+        'Project Type': codebaseAnalysis.projectType,
+        'Language': codebaseAnalysis.language || 'Unknown',
+        'Framework': codebaseAnalysis.framework || 'None',
+        'Total Files': codebaseAnalysis.totalFiles,
+        'Dependencies': codebaseAnalysis.dependencies.length
+      });
+    }
 
     // Collect goal with codebase context — auto-detects category, skips redundant questions
     const goalData = await collectProjectGoal(codebaseAnalysis);
@@ -129,7 +173,7 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   log.debug(`Category: ${goal.category}`);
 
   // Step 4b: Select AI model
-  const model = await selectModel(isVerbose);
+  const model = options.jsonMode ? 'sonnet' : await selectModel(isVerbose);
   log.debug(`Selected model: ${model}`);
 
   // Step 5: Generate recommendations
@@ -138,30 +182,50 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   const recommendationEngine = new RecommendationEngine();
   const recommendations = await recommendationEngine.recommend(goal, codebaseAnalysis);
 
-  spinner.stop(pc.green('✓') + ' Found ' + recommendations.defaultAgents.length + ' recommended agents');
+  const totalRelevant = recommendations.agents.filter(a => a.score > 0).length;
+  spinner.stop(
+    pc.green('✓') + ` Analyzed ${totalRelevant} agents, ${recommendations.defaultAgents.length} recommended`
+  );
 
-  log.section('Recommendations');
-  log.verbose(`Agents: ${recommendations.agents.map(a => `${a.name}(${a.score})`).join(', ')}`);
-  log.verbose(`Skills: ${recommendations.skills.map(s => `${s.name}(${s.score})`).join(', ')}`);
+  if (!options.jsonMode) {
+    log.section('Recommendations');
+    log.verbose(`Agents: ${recommendations.agents.map(a => `${a.name}(${a.score})`).join(', ')}`);
+    log.verbose(`Skills: ${recommendations.skills.map(s => `${s.name}(${s.score})`).join(', ')}`);
+  }
 
-  // Step 6: Confirm selections
-  const selections = await confirmSelections(recommendations);
+  // Step 6: Select team (agents + auto-linked skills)
+  let selections: { agents: string[]; skills: string[]; autoLinkedSkills: string[]; qualityGate: 'hard' | 'soft' | 'off' };
+  if (options.jsonMode) {
+    const agents = options.agentOverrides ?? recommendations.defaultAgents;
+    const skills = options.skillOverrides
+      ?? [...new Set([...computeAutoLinkedSkills(agents, recommendations), ...recommendations.defaultSkills])];
+    selections = { agents, skills, autoLinkedSkills: [], qualityGate: 'off' };
+  } else {
+    selections = await selectTeam(recommendations, { testCommand: codebaseAnalysis.testCommand });
+  }
+  const allSkills = [...new Set([...selections.skills, ...selections.autoLinkedSkills])];
+
+  const qualityGate = selections.qualityGate;
+  const securityGate = selections.agents.includes('security-analyst');
 
   log.debug(`Selected agents: ${selections.agents.join(', ')}`);
-  log.debug(`Selected skills: ${selections.skills.join(', ')}`);
+  log.debug(`Selected skills: ${allSkills.join(', ')}`);
 
   // Build context
   const context: GenerationContext = {
     goal,
     codebase: codebaseAnalysis,
     selectedAgents: selections.agents,
-    selectedSkills: selections.skills,
+    selectedSkills: allSkills,
     selectedModel: model,
     authMethod: auth.method,
     apiKey: auth.apiKey,
     sampledFiles: codebaseAnalysis.sampledFiles || [],
     verbose: isVerbose,
     dryRun: isDryRun,
+    selectedBlueprint: selectedBlueprintId,
+    qualityGate,
+    securityGate,
     generatedAt: new Date().toISOString()
   };
 
@@ -172,20 +236,20 @@ export async function runGenerationPipeline(options: PipelineOptions): Promise<P
   }
 
   // Step 7: Generate with AI
-  console.log('');  // Add spacing
+  if (!options.jsonMode) console.log('');  // Add spacing
 
   const generator = new AIGenerator();
   const outputs = await generator.generateAll(context);
 
-  console.log('');  // Add spacing after generation
+  if (!options.jsonMode) console.log('');  // Add spacing after generation
 
   // Step 8: Write output
   spinner.start('Saving configuration...');
 
-  const writer = new OutputWriter(projectRoot);
+  const writer = new OutputWriter(projectRoot, options.jsonMode ?? false);
   const summary = await writer.writeAll(outputs);
 
   spinner.stop(pc.green('✓') + ' Configuration saved');
 
-  return { summary };
+  return { summary, codebaseAnalysis, projectMode };
 }

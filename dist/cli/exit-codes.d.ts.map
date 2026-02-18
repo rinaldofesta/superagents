@@ -1,1 +1,0 @@
-{"version":3,"file":"exit-codes.d.ts","sourceRoot":"","sources":["../../src/cli/exit-codes.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,eAAO,MAAM,UAAU;IACrB,2BAA2B;;IAG3B,wEAAwE;;IAGxE,8DAA8D;;IAG9D,wCAAwC;;CAEhC,CAAC;AAEX,MAAM,MAAM,QAAQ,GAAG,OAAO,UAAU,CAAC,MAAM,OAAO,UAAU,CAAC,CAAC;AAElE;;GAEG;AACH,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,KAAK,GAAG,QAAQ,CA+B1D"}

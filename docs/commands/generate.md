@@ -21,6 +21,10 @@ superagents [options]
 | `--dry-run` | Preview without API calls or writing files | `false` |
 | `-v, --verbose` | Show detailed output during generation | `false` |
 | `-u, --update` | Update existing configuration incrementally | `false` |
+| `--json` | Non-interactive mode — outputs JSON to stdout | `false` |
+| `--goal <description>` | Goal text (skips interactive goal prompt) | - |
+| `--agents <list>` | Comma-separated agent names (JSON mode) | - |
+| `--skills <list>` | Comma-separated skill names (JSON mode) | - |
 | `--version` | Show SuperAgents version | - |
 | `--help` | Show help text | - |
 
@@ -95,6 +99,44 @@ Options during update:
 5. Regenerate CLAUDE.md
 6. Regenerate specific items
 7. Regenerate everything
+
+### JSON Mode (Non-Interactive)
+
+For CI/CD pipelines and scripting:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Minimal — auto-recommends agents
+superagents --json --goal "build a REST API with auth"
+
+# Explicit selections
+superagents --json \
+  --goal "add tests and coverage" \
+  --agents "testing-specialist,code-reviewer" \
+  --skills "typescript,vitest"
+```
+
+Auth is resolved automatically from `ANTHROPIC_API_KEY` or Claude CLI. On success, a `JsonModeOutput` object is written to stdout. On failure, a `JsonModeError` object is written and the process exits with code 1. No interactive prompts are shown. The `.claude` directory is overwritten without confirmation.
+
+See [CLI Options Reference](../reference/cli-options.md#non-interactive-mode-json-mode) for the full JSON schema.
+
+### Quality Gate (testing-specialist only)
+
+When `testing-specialist` is selected and a test command is detected, an additional prompt appears:
+
+```
+? Enable test quality gate?
+  ● Off     Claude can stop anytime
+  ○ Soft    Warn if tests fail, allow stop
+  ○ Hard    Block stop until tests pass
+```
+
+- **Off** (default): No enforcement. Claude stops whenever it wants.
+- **Soft**: Tests run on Stop; a warning is printed if they fail, but Claude can still stop.
+- **Hard**: Tests run on Stop; Claude is blocked from stopping until they pass.
+
+The security gate (enabled automatically when `security-analyst` is selected) adds a `PreToolUse` hook that checks every `Write` call for hardcoded secrets (AWS keys, Anthropic keys, GitHub tokens, passwords, etc.) and blocks the write if any are found.
 
 ### Combined Options
 
@@ -261,8 +303,9 @@ SuperAgents creates:
 ```
 your-project/
 ├── CLAUDE.md              # Project context
+├── ROADMAP.md             # Generated for blueprint projects
 └── .claude/
-    ├── settings.json      # Configuration metadata
+    ├── settings.json      # Permissions, hooks config
     ├── agents/
     │   ├── backend-engineer.md
     │   ├── api-designer.md
@@ -271,9 +314,15 @@ your-project/
     │   ├── typescript.md
     │   ├── nodejs.md
     │   └── ...
+    ├── commands/
+    │   ├── status.md
+    │   ├── fix.md
+    │   └── ...
     └── hooks/
-        └── skill-loader.sh
+        └── security-gate.sh   # Present when security-analyst is selected
 ```
+
+`security-gate.sh` is a `PreToolUse` hook (registered in `settings.json`) that runs before every `Write` call. It detects hardcoded secrets and exits with code 2 to block the write.
 
 ## Exit Codes
 

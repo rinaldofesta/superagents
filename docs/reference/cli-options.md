@@ -15,6 +15,10 @@ superagents [options]
 | `--dry-run` | - | Preview without API calls or writing files | `false` |
 | `--verbose` | `-v` | Show detailed output | `false` |
 | `--update` | `-u` | Update existing configuration | `false` |
+| `--json` | - | Non-interactive mode — outputs JSON to stdout | `false` |
+| `--goal <description>` | - | Goal description (skips interactive prompt) | - |
+| `--agents <list>` | - | Comma-separated agent names (JSON mode) | - |
+| `--skills <list>` | - | Comma-separated skill names (JSON mode) | - |
 | `--version` | - | Show version number | - |
 | `--help` | `-h` | Show help text | - |
 
@@ -48,6 +52,74 @@ superagents -h
 ```
 
 ## Subcommands
+
+### status
+
+Show project progress from ROADMAP.md:
+
+```bash
+superagents status
+```
+
+No options. Reads `ROADMAP.md` and displays per-phase progress bars. See [Status Command](../commands/status.md).
+
+### evolve
+
+Detect project changes and propose config updates:
+
+```bash
+superagents evolve
+```
+
+No options. Re-scans codebase and proposes changes. See [Evolve Command](../commands/evolve.md).
+
+### handoff
+
+Generate HANDOFF.md for developer hand-off:
+
+```bash
+superagents handoff
+```
+
+No options. Gathers project context and writes `HANDOFF.md`. See [Handoff Command](../commands/handoff.md).
+
+### publish
+
+Package your project as a reusable blueprint:
+
+```bash
+superagents publish [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <path>` | Output directory for the blueprint zip |
+
+See [Publish Command](../commands/publish.md).
+
+### use
+
+Install a published blueprint from a file or URL:
+
+```bash
+superagents use <source> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Replace existing configuration |
+| `--preview` | Show contents without installing |
+
+Examples:
+
+```bash
+superagents use ./my-blueprint.zip
+superagents use https://example.com/blueprint.zip
+superagents use ./blueprint.zip --preview
+superagents use ./blueprint.zip --force
+```
+
+See [Use Command](../commands/use.md).
 
 ### update
 
@@ -335,7 +407,7 @@ superagents --version
 ```
 
 ```
-1.3.1
+1.5.0
 ```
 
 ### --help (-h)
@@ -359,6 +431,11 @@ Options:
   -h, --help            Show help
 
 Commands:
+  status                Show project progress from ROADMAP.md
+  evolve                Detect project changes and update config
+  handoff               Generate HANDOFF.md for developer hand-off
+  publish [options]     Package project as a reusable blueprint
+  use <source>          Install a published blueprint
   update                Update SuperAgents to latest version
   cache [options]       Manage cache
   templates [options]   Manage templates
@@ -369,6 +446,11 @@ Examples:
   superagents                        Generate configuration
   superagents --dry-run              Preview generation
   superagents --update               Update existing config
+  superagents status                 View roadmap progress
+  superagents evolve                 Update config for project changes
+  superagents handoff                Generate hand-off document
+  superagents publish                Package as reusable blueprint
+  superagents use ./blueprint.zip    Install a published blueprint
   superagents cache --stats          View cache statistics
   superagents templates --list       List templates
   superagents export config.zip      Export configuration
@@ -445,19 +527,49 @@ sac --stats # superagents cache --stats
 
 ## Scripting
 
-### Non-Interactive Mode
+### Non-Interactive Mode (JSON Mode)
 
-SuperAgents is interactive by default. For scripting:
+Use `--json` for CI/CD pipelines and scripting. All interactive prompts are bypassed and results are written to stdout as JSON.
 
 ```bash
-# Use --dry-run for non-interactive preview
-superagents --dry-run
+# Auth is resolved automatically: ANTHROPIC_API_KEY env var, then Claude CLI
+export ANTHROPIC_API_KEY=sk-ant-...
 
-# Or pipe answers (not supported yet)
-# echo -e "api-key\nBuild a REST API\n\n\n" | superagents
+# Minimal — uses default agent recommendations
+superagents --json --goal "build a REST API"
+
+# Explicit agent + skill selection
+superagents --json \
+  --goal "add comprehensive tests" \
+  --agents "testing-specialist,code-reviewer" \
+  --skills "typescript,vitest"
 ```
 
-Currently, SuperAgents requires interactive input. Scripting support planned for future version.
+**Success output** (`JsonModeOutput`):
+```json
+{
+  "success": true,
+  "mode": "existing",
+  "projectRoot": "/path/to/project",
+  "agents": ["backend-engineer", "testing-specialist"],
+  "skills": ["typescript", "nodejs"],
+  "filesWritten": ["CLAUDE.md", ".claude/agents/backend-engineer.md", "..."],
+  "warnings": []
+}
+```
+
+**Error output** (`JsonModeError`):
+```json
+{
+  "success": false,
+  "error": "No authentication available",
+  "code": "AUTH_REQUIRED"
+}
+```
+
+Error codes: `AUTH_REQUIRED`, `INVALID_SELECTION`, `GENERATION_FAILED`, `UNKNOWN_ERROR`.
+
+In JSON mode, quality gate is always `off` and the `.claude` directory is overwritten without confirmation.
 
 ### Exit Code Handling
 

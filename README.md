@@ -77,6 +77,14 @@ SuperAgents creates a `.claude/` folder in your project with three things:
 | `superagents` | Generate config for your project |
 | `superagents --dry-run` | Preview without making changes |
 | `superagents --update` | Add or remove agents from existing config |
+| `superagents --json` | Non-interactive mode — outputs JSON to stdout |
+| `superagents --json --goal "..."` | JSON mode with goal (skips all prompts) |
+| `superagents --json --agents "backend-engineer,testing-specialist" --skills "typescript"` | JSON mode with explicit agent/skill selection |
+| `superagents status` | Show ROADMAP.md progress |
+| `superagents evolve` | Detect project changes and propose config updates |
+| `superagents handoff` | Generate HANDOFF.md for team hand-offs |
+| `superagents publish` | Package project as a reusable .blueprint.zip |
+| `superagents use <source>` | Install a blueprint from a file or URL |
 | `superagents update` | Update SuperAgents itself |
 | `superagents cache --stats` | Check cache usage |
 | `superagents cache --clear` | Clear cached data |
@@ -84,6 +92,27 @@ SuperAgents creates a `.claude/` folder in your project with three things:
 | `superagents import config.zip` | Load a shared config |
 
 ## Authentication
+
+### JSON / Pipeline Mode
+
+Run SuperAgents non-interactively from CI/CD scripts or other tools:
+
+```bash
+# With API key in environment
+export ANTHROPIC_API_KEY=sk-ant-...
+superagents --json --goal "build a REST API with auth"
+
+# Output (stdout):
+# {"success":true,"mode":"existing","projectRoot":"/path","agents":["backend-engineer","api-designer"],...}
+
+# Specify agents and skills explicitly
+superagents --json --goal "add tests" --agents "testing-specialist" --skills "typescript,vitest"
+
+# On failure:
+# {"success":false,"error":"...","code":"AUTH_REQUIRED"}
+```
+
+Auth is resolved automatically: `ANTHROPIC_API_KEY` env var is tried first, then the Claude CLI.
 
 SuperAgents needs access to Claude to generate your configurations. Two options:
 

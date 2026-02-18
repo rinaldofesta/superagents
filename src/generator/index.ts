@@ -7,11 +7,17 @@
  * - Verbose logging support
  */
 
+// Node.js built-ins
+import fs from 'fs-extra';
+import path from 'path';
+
 // External packages
 import Anthropic from '@anthropic-ai/sdk';
 import ora from 'ora';
 
 // Internal modules
+import { BLUEPRINTS } from '../blueprints/definitions.js';
+import { renderRoadmap } from '../blueprints/renderer.js';
 import { cache } from '../cache/index.js';
 import {
   buildAgentPrompt as buildCompressedAgentPrompt,
@@ -27,7 +33,7 @@ import { selectModel, getSkillComplexity, getModelDisplayName } from '../utils/m
 
 // Type imports
 import type { GenerationCacheKey } from '../cache/index.js';
-import type { GenerationContext, GeneratedOutputs, AgentOutput, SkillOutput, DocOutput } from '../types/generation.js';
+import type { GenerationContext, GeneratedOutputs, AgentOutput, SkillOutput, HookOutput, CommandOutput, DocOutput } from '../types/generation.js';
 
 // Max tokens scaled by generation type to optimize API costs
 const MAX_TOKENS_BY_TYPE: Record<string, number> = {
@@ -38,6 +44,37 @@ const MAX_TOKENS_BY_TYPE: Record<string, number> = {
 };
 
 const DEFAULT_MAX_TOKENS = 2000;
+
+const SECURITY_GATE_SCRIPT = `#!/usr/bin/env bash
+# SuperAgents security gate — blocks writes containing hardcoded secrets
+# Exit 2 = block the tool call. Exit 0 = allow.
+
+CONTENT=\$(python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('content', ''))
+except:
+    pass
+" 2>/dev/null)
+
+[ -z "\$CONTENT" ] && exit 0
+
+FOUND=""
+echo "\$CONTENT" | grep -qE 'AKIA[0-9A-Z]{16}' && FOUND="AWS Access Key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'sk-ant-[a-zA-Z0-9_-]{40,}' && FOUND="Anthropic API key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'sk-[a-zA-Z0-9]{48}' && FOUND="OpenAI API key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'ghp_[a-zA-Z0-9]{36}' && FOUND="GitHub token"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -qE 'xoxb-[0-9A-Za-z-]{70,}' && FOUND="Slack token"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -q -- '-----BEGIN.*PRIVATE KEY' && FOUND="Private key"
+[ -z "\$FOUND" ] && echo "\$CONTENT" | grep -iqE 'password\\\\s*=\\\\s*['"'"'"][^'"'"'"]{8,}' && FOUND="Hardcoded password"
+
+if [ -n "\$FOUND" ]; then
+  echo "SECURITY GATE: Blocked — \$FOUND detected. Use environment variables instead." >&2
+  exit 2
+fi
+exit 0
+`;
 
 export class AIGenerator {
   private codebaseHash: string = '';
@@ -225,7 +262,7 @@ export class AIGenerator {
       });
     }
 
-    const hooks: never[] = [];
+    const hooks = this.buildHookFiles(context);
 
     // Generate docs (template-based, no API calls)
     const docs: DocOutput[] = [
@@ -251,22 +288,40 @@ export class AIGenerator {
       claudeMd = this.generateClaudeMd(context);
     }
 
+    // Generate slash commands (template-based, no API calls)
+    const commands = this.generateSlashCommands(context);
+
+    // Generate ROADMAP.md if a blueprint was selected
+    let roadmapMd: string | undefined;
+    if (context.selectedBlueprint) {
+      const blueprint = BLUEPRINTS.find(b => b.id === context.selectedBlueprint);
+      if (blueprint) {
+        roadmapMd = renderRoadmap(blueprint, context);
+        log.verbose(`Generated ROADMAP.md for blueprint: ${blueprint.name}`);
+      }
+    }
+
     spinner.succeed(`Generation complete! [100%]`);
 
     // Summary logging
     log.section('Generation Summary');
     log.verbose(`Agents generated: ${agents.length} (${agentResults.errors.length} fallbacks)`);
     log.verbose(`Skills generated: ${skills.length} (${skillResults.errors.length} fallbacks)`);
+    log.verbose(`Commands generated: ${commands.length}`);
 
-    const settings = this.buildSettings(context);
+    // Check for git directory to conditionally add git permissions
+    const hasGit = await fs.pathExists(path.join(context.codebase.projectRoot, '.git'));
+    const settings = this.buildSettings(context, hasGit);
 
     return {
       agents,
       skills,
       hooks,
+      commands,
       claudeMd,
       settings,
-      docs
+      docs,
+      roadmapMd
     };
   }
 
@@ -479,43 +534,102 @@ Use mcp__context7__resolve-library-id then mcp__context7__query-docs for up-to-d
 `;
   }
 
+  private buildHookFiles(context: GenerationContext): HookOutput[] {
+    if (!context.securityGate) return [];
+    return [{
+      filename: 'security-gate.sh',
+      content: SECURITY_GATE_SCRIPT,
+      hookName: 'security-gate'
+    }];
+  }
+
   /**
-   * Build settings.json with permissions, deny lists, and optional lint hook
+   * Build settings.json with permissions, deny lists, and optional lint/format hook
    */
-  private buildSettings(context: GenerationContext) {
+  private buildSettings(context: GenerationContext, hasGit: boolean) {
     const pm = context.codebase.packageManager;
     const lintCmd = context.codebase.lintCommand;
+    const formatCmd = context.codebase.formatCommand;
+    const testCmd = context.codebase.testCommand;
+
+    const allowPerms = [
+      'Read(*)',
+      'Write(src/**)',
+      'Write(docs/**)',
+      `Bash(${pm} *)`,
+      'Bash(npx *)',
+    ];
+
+    const denyPerms = [
+      'Read(.env*)',
+      'Bash(rm -rf *)',
+      `Bash(${pm} publish *)`,
+    ];
+
+    // Add git permissions only if project has git
+    if (hasGit) {
+      allowPerms.push(
+        'Bash(git status)',
+        'Bash(git diff *)',
+        'Bash(git log *)',
+        'Bash(git add *)',
+      );
+      denyPerms.push(
+        'Bash(git push --force *)',
+        'Bash(git push *)',
+        'Bash(git checkout main)',
+      );
+    }
 
     const settings: Record<string, unknown> = {
       agents: context.selectedAgents,
       skills: context.selectedSkills,
       model: context.selectedModel,
       permissions: {
-        allow: [
-          'Read(*)',
-          'Write(src/**)',
-          `Bash(${pm} *)`,
-          'Bash(npx *)',
-          'Bash(git status)',
-          'Bash(git diff)',
-          'Bash(git log)'
-        ],
-        deny: [
-          'Read(.env*)',
-          'Bash(rm -rf *)',
-          'Bash(git push --force *)',
-          `Bash(${pm} publish *)`
-        ]
+        allow: allowPerms,
+        deny: denyPerms,
       }
     };
 
-    if (lintCmd) {
-      settings.hooks = {
+    // Build Stop hook with format + lint commands
+    if (lintCmd || formatCmd) {
+      const hookCommands: string[] = [];
+      if (formatCmd) hookCommands.push(`${formatCmd} 2>/dev/null`);
+      if (lintCmd) hookCommands.push(`${lintCmd} --fix --quiet 2>/dev/null`);
+
+      const gate = context.qualityGate ?? 'off';
+      if (gate === 'hard' && testCmd) {
+        hookCommands.push(testCmd);
+      } else if (gate === 'soft' && testCmd) {
+        hookCommands.push(`${testCmd} || echo "WARNING: tests failing"`);
+        hookCommands.push('exit 0');
+      } else {
+        hookCommands.push('exit 0');
+      }
+
+      const hooksConfig: Record<string, unknown[]> = {
         Stop: [{
           hooks: [{
             type: 'command' as const,
-            command: lintCmd
+            command: hookCommands.join('; ')
           }]
+        }]
+      };
+
+      if (context.securityGate) {
+        hooksConfig['PreToolUse'] = [{
+          matcher: 'Write',
+          hooks: [{ type: 'command' as const, command: 'bash .claude/hooks/security-gate.sh' }]
+        }];
+      }
+
+      settings.hooks = hooksConfig;
+    } else if (context.securityGate) {
+      // No lint/format but security gate requested
+      settings.hooks = {
+        PreToolUse: [{
+          matcher: 'Write',
+          hooks: [{ type: 'command' as const, command: 'bash .claude/hooks/security-gate.sh' }]
         }]
       };
     }
@@ -670,7 +784,7 @@ ${patternLines || 'No patterns detected yet.'}
 - Import order: built-ins, external packages, internal modules, type imports
 - Named exports preferred over default exports
 - Type \`import type\` for type-only imports
-- Match existing indentation and formatting
+- Code style enforced by Stop hook — do not add style rules here
 
 ## Before Coding
 1. **Think**: State assumptions, surface tradeoffs, ask if unclear
@@ -678,9 +792,79 @@ ${patternLines || 'No patterns detected yet.'}
 3. **Surgical**: Touch only what you must, clean up only your own mess
 4. **Verify**: Define success criteria, write tests, loop until green
 
+## Session Continuity
+- Run /recap at end of each session to save progress
+- Check docs/session-recap.md at start of each session for context
+
 ## Deep Context
 See \`.claude/docs/\` for architecture, patterns, and setup details.
 `;
+  }
+
+  /**
+   * Generate slash commands from detected project commands
+   */
+  private generateSlashCommands(context: GenerationContext): CommandOutput[] {
+    const build = context.codebase.buildCommand || 'npm run build';
+    const lint = context.codebase.lintCommand || 'npm run lint';
+    const test = context.codebase.testCommand || 'npm test';
+
+    return [
+      {
+        filename: 'status.md',
+        commandName: 'status',
+        content: `Read the project structure, check for build errors (\`${build}\`), and report:
+1. What features/pages exist and are working
+2. What's broken (build errors, missing env vars, type errors)
+3. What's next based on CLAUDE.md or ROADMAP.md
+Report in plain language. No jargon.
+`
+      },
+      {
+        filename: 'fix.md',
+        commandName: 'fix',
+        content: `If a problem description follows this command, investigate that specific issue first.
+Otherwise:
+1. Run \`${build}\` and capture errors
+2. Run \`${lint}\` and capture errors
+3. Fix all errors you find
+4. Run build again to verify
+5. Report what was fixed
+`
+      },
+      {
+        filename: 'next.md',
+        commandName: 'next',
+        content: `Read CLAUDE.md and ROADMAP.md (if exists). Check docs/session-recap.md for context from last session.
+Based on current project state:
+1. What has already been built? (check existing files and git log)
+2. What is the next logical step?
+3. Describe the task clearly and ask if I should proceed.
+`
+      },
+      {
+        filename: 'recap.md',
+        commandName: 'recap',
+        content: `Summarize this session:
+1. What files were created or changed?
+2. What features were added or fixed?
+3. What's still incomplete or broken?
+4. What should I start with next time?
+Write a concise summary (< 20 lines) I can paste into my next session.
+`
+      },
+      {
+        filename: 'ship.md',
+        commandName: 'ship',
+        content: `1. Run \`${build}\` — fix any errors
+2. Run \`${test}\` — fix any failures
+3. Run \`${lint} --fix\`
+4. \`git add -A && git status\` — show what will be committed
+5. Suggest a commit message based on changes
+6. STOP and ask for confirmation before committing
+`
+      }
+    ];
   }
 
   /**

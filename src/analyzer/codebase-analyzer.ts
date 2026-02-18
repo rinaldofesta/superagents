@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { glob } from 'glob';
 import type { CodebaseAnalysis, ProjectType, Framework, ProgrammingLanguage, SampledFile, MonorepoInfo, MonorepoPackage, MonorepoTool, PackageManager, NegativeConstraint, McpSuggestion } from '../types/codebase.js';
+import { EXTENSION_TO_LANGUAGE, CLI_DEPS, SERVER_DEPS, ENTRY_POINTS, NEGATIVE_CONSTRAINT_GROUPS } from './constants.js';
 
 /** Default ignore patterns always applied to glob operations */
 const DEFAULT_IGNORE_PATTERNS = [
@@ -82,7 +83,7 @@ export class CodebaseAnalyzer {
 
     // Generate negative constraints and MCP suggestions
     const negativeConstraints = this.generateNegativeConstraints(allDeps);
-    const mcpSuggestions = this.suggestMcpServers(allDeps, framework);
+    const mcpSuggestions = await this.suggestMcpServers(allDeps, framework);
 
     // Detect patterns
     const patterns = await this.detectPatterns(userIgnorePatterns);
@@ -153,20 +154,6 @@ export class CodebaseAnalyzer {
   }
 
   private async detectPrimaryLanguage(userIgnorePatterns: string[] = []): Promise<ProgrammingLanguage | null> {
-    const extensionToLanguage: Record<string, ProgrammingLanguage> = {
-      ts: 'typescript',
-      tsx: 'typescript',
-      js: 'javascript',
-      jsx: 'javascript',
-      py: 'python',
-      go: 'go',
-      rs: 'rust',
-      java: 'java',
-      cs: 'csharp',
-      php: 'php',
-      rb: 'ruby'
-    };
-
     try {
       const codeFiles = await glob('**/*.{ts,tsx,js,jsx,py,go,rs,java,cs,php,rb}', {
         cwd: this.projectRoot,
@@ -177,7 +164,7 @@ export class CodebaseAnalyzer {
       const counts = new Map<ProgrammingLanguage, number>();
       for (const file of codeFiles) {
         const ext = file.split('.').pop() || '';
-        const lang = extensionToLanguage[ext];
+        const lang = EXTENSION_TO_LANGUAGE[ext];
         if (lang) {
           counts.set(lang, (counts.get(lang) || 0) + 1);
         }
@@ -236,6 +223,12 @@ export class CodebaseAnalyzer {
       if (deps['@angular/core']) return 'angular';
       if (deps['svelte']) return 'svelte';
       if (deps['express'] || deps['fastify']) return 'node';
+
+      // CLI tools and generic Node.js projects
+      if (CLI_DEPS.some(d => deps[d]) || SERVER_DEPS.some(d => deps[d])) return 'node';
+
+      // package.json with a `bin` field is a Node.js CLI project
+      if (pkg.bin) return 'node';
     }
 
     // Python (requirements.txt or pyproject.toml)
@@ -707,18 +700,7 @@ export class CodebaseAnalyzer {
       }
 
       // Try to find entry point files
-      const entryPoints = [
-        'src/index.ts',
-        'src/index.js',
-        'src/main.ts',
-        'src/main.js',
-        'index.ts',
-        'index.js',
-        'app/layout.tsx',
-        'app/page.tsx'
-      ];
-
-      for (const entryPoint of entryPoints) {
+      for (const entryPoint of ENTRY_POINTS) {
         if (sampledFiles.length >= maxFiles) break;
         await this.tryAddFile(
           sampledFiles,
@@ -897,20 +879,7 @@ export class CodebaseAnalyzer {
     const depNames = new Set(allDeps.map(d => d.name));
     const constraints: NegativeConstraint[] = [];
 
-    const groups: Array<[string, string][]> = [
-      [['prisma', 'Prisma'], ['drizzle-orm', 'Drizzle']],
-      [['vitest', 'Vitest'], ['jest', 'Jest']],
-      [['tailwindcss', 'Tailwind CSS'], ['styled-components', 'styled-components'], ['@emotion/react', 'Emotion']],
-      [['express', 'Express'], ['fastify', 'Fastify'], ['@nestjs/core', 'NestJS']],
-      [['react', 'React'], ['vue', 'Vue'], ['svelte', 'Svelte'], ['@angular/core', 'Angular']],
-      [['next', 'Next.js'], ['nuxt', 'Nuxt']],
-      [['pino', 'Pino'], ['winston', 'Winston']],
-      [['zod', 'Zod'], ['joi', 'Joi'], ['yup', 'Yup']],
-      [['playwright', 'Playwright'], ['cypress', 'Cypress']],
-      [['@supabase/supabase-js', 'Supabase'], ['firebase', 'Firebase']],
-    ];
-
-    for (const group of groups) {
+    for (const group of NEGATIVE_CONSTRAINT_GROUPS) {
       const installed = group.filter(([pkg]) => depNames.has(pkg));
       const notInstalled = group.filter(([pkg]) => !depNames.has(pkg));
 
@@ -929,9 +898,23 @@ export class CodebaseAnalyzer {
   }
 
   /**
+   * Check if project has a git remote configured
+   */
+  private async hasGitRemote(): Promise<boolean> {
+    try {
+      const gitConfig = path.join(this.projectRoot, '.git', 'config');
+      if (await fs.pathExists(gitConfig)) {
+        const content = await fs.readFile(gitConfig, 'utf-8');
+        return content.includes('[remote');
+      }
+      return false;
+    } catch { return false; }
+  }
+
+  /**
    * Suggest MCP servers based on detected dependencies
    */
-  private suggestMcpServers(allDeps: Array<{ name: string }>, framework: Framework | null): McpSuggestion[] {
+  private async suggestMcpServers(allDeps: Array<{ name: string; version?: string }>, framework: Framework | null): Promise<McpSuggestion[]> {
     const depNames = new Set(allDeps.map(d => d.name));
     const suggestions: McpSuggestion[] = [];
 
@@ -939,14 +922,14 @@ export class CodebaseAnalyzer {
     suggestions.push({
       name: 'context7',
       reason: 'Up-to-date library documentation',
-      installCommand: 'npx -y @anthropic-ai/claude-code mcp add context7 -- npx -y @upstash/context7-mcp'
+      installCommand: 'claude mcp add context7 -- npx -y @upstash/context7-mcp'
     });
 
     if (depNames.has('@supabase/supabase-js')) {
       suggestions.push({
         name: 'supabase',
         reason: 'Supabase database and auth management',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add supabase -- npx -y @supabase/mcp-server'
+        installCommand: 'claude mcp add supabase -- npx -y @supabase/mcp-server'
       });
     }
 
@@ -954,7 +937,7 @@ export class CodebaseAnalyzer {
       suggestions.push({
         name: 'stripe',
         reason: 'Stripe payment integration docs',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add stripe -- npx -y @stripe/mcp'
+        installCommand: 'claude mcp add stripe -- npx -y @stripe/mcp'
       });
     }
 
@@ -962,7 +945,35 @@ export class CodebaseAnalyzer {
       suggestions.push({
         name: 'browser-tools',
         reason: 'Browser debugging and screenshots',
-        installCommand: 'npx -y @anthropic-ai/claude-code mcp add browser-tools -- npx -y @anthropic-ai/browser-tools-mcp'
+        installCommand: 'claude mcp add browser-tools -- npx -y @anthropic-ai/browser-tools-mcp'
+      });
+    }
+
+    // Vercel detection
+    if (depNames.has('@vercel/analytics') || depNames.has('@vercel/og') ||
+        await fs.pathExists(path.join(this.projectRoot, 'vercel.json'))) {
+      suggestions.push({
+        name: 'vercel',
+        reason: 'Vercel deployment and project management',
+        installCommand: 'claude mcp add vercel --transport http https://mcp.vercel.com/mcp'
+      });
+    }
+
+    // GitHub detection (git remote)
+    if (await this.hasGitRemote()) {
+      suggestions.push({
+        name: 'github',
+        reason: 'GitHub repository management and PR workflows',
+        installCommand: 'claude mcp add github -- npx -y @modelcontextprotocol/server-github'
+      });
+    }
+
+    // Next.js DevTools
+    if (framework === 'nextjs') {
+      suggestions.push({
+        name: 'next-devtools',
+        reason: 'Next.js development tools, error diagnostics, and route inspection',
+        installCommand: 'claude mcp add next-devtools -- npx -y next-devtools-mcp@latest'
       });
     }
 
